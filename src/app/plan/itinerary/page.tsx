@@ -41,13 +41,13 @@ export default function ItineraryPage() {
       <StepProgressBar currentStep={3} />
 
       {/* Header Banner */}
-      <div className="bg-surface rounded-[24px] border border-border p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div>
+      <div className="bg-surface rounded-[24px] border border-border p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="min-w-0 flex-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary-container font-label-sm text-xs font-bold mb-2">
             <span className="material-symbols-outlined text-[16px]">verified</span>
             <span>Rekomendasi AI Terpilih</span>
           </div>
-          <h1 className="font-headline-md text-2xl sm:text-4xl font-bold text-on-surface">
+          <h1 className="font-headline-md text-2xl sm:text-4xl font-bold text-on-surface break-words">
             {itinerary.title}
           </h1>
           <p className="font-body-md text-sm sm:text-base text-on-surface-variant mt-1">
@@ -56,21 +56,21 @@ export default function ItineraryPage() {
         </div>
 
         {/* Quick action buttons */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          <Link href="/plan/map" className="flex-1 md:flex-none">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full lg:w-auto shrink-0">
+          <Link href="/plan/map" className="flex-1 sm:flex-none">
             <button
               type="button"
-              className="w-full md:w-auto px-4 py-3 rounded-xl border border-border hover:border-primary/50 bg-surface text-on-surface font-button-text text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full sm:w-auto px-4 py-3 rounded-xl border border-border hover:border-primary/50 bg-surface text-on-surface font-button-text text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
             >
               <span className="material-symbols-outlined text-[18px] text-primary">map</span>
               <span>Peta Rute</span>
             </button>
           </Link>
 
-          <Link href="/plan/replan" className="flex-1 md:flex-none">
+          <Link href="/plan/replan" className="flex-1 sm:flex-none">
             <button
               type="button"
-              className="w-full md:w-auto px-4 py-3 rounded-xl border border-border hover:border-primary/50 bg-surface text-on-surface font-button-text text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full sm:w-auto px-4 py-3 rounded-xl border border-border hover:border-primary/50 bg-surface text-on-surface font-button-text text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
             >
               <span className="material-symbols-outlined text-[18px] text-primary">tune</span>
               <span>Sesuaikan</span>
@@ -80,7 +80,7 @@ export default function ItineraryPage() {
           <button
             type="button"
             onClick={handleSave}
-            className="w-full md:w-auto px-6 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary font-button-text font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"
+            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary font-button-text font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap shrink-0"
           >
             <span className="material-symbols-outlined text-[18px]">
               {savedSuccess ? 'check_circle' : 'bookmark'}
