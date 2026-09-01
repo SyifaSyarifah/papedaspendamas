@@ -102,7 +102,7 @@ export default function ReplanPage() {
       <div className="text-center max-w-xl mx-auto space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary-container text-on-primary-container font-label-sm text-xs font-bold">
           <span className="material-symbols-outlined text-[16px]">tune</span>
-          <span>Itinerary Replanning</span>
+          <span>Sesuaikan Jadwal</span>
         </div>
         <h1 className="font-headline-md text-2xl sm:text-3xl font-bold text-on-surface">
           Sesuaikan Perjalananmu

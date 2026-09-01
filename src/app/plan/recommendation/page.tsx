@@ -129,7 +129,7 @@ export default function RecommendationPage() {
           className="w-full sm:w-auto px-8 py-3.5 bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary font-button-text font-bold text-sm sm:text-base rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95"
         >
           <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
-          <span>Buat Itinerary Otomatis</span>
+          <span>Buat Jadwal Otomatis</span>
         </button>
       </div>
     </div>

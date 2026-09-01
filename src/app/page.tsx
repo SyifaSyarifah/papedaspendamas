@@ -194,7 +194,7 @@ export default function HomePage() {
               <div className="flex justify-end">
                 <span className="bg-primary-container text-on-primary-fixed px-3.5 py-1 rounded-full font-label-sm text-xs font-bold flex items-center gap-1 shadow-lg backdrop-blur-md bg-opacity-95">
                   <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
-                  Trending
+                  Populer
                 </span>
               </div>
               <div className="space-y-2">
@@ -312,7 +312,7 @@ export default function HomePage() {
                 3
               </div>
               <h3 className="font-section-title text-base md:text-lg font-bold text-on-surface">
-                Itinerary & Peta Rute
+                Jadwal & Peta Rute
               </h3>
               <p className="font-body-md text-sm text-on-surface-variant leading-relaxed">
                 Jadwal tersusun otomatis dengan rincian biaya, visual peta rute Leaflet, dan fitur replanning instan.

@@ -91,7 +91,7 @@ export default function FoodDetailPage() {
         <div>
           <div className="flex items-center gap-1.5 font-label-sm text-xs font-bold text-primary uppercase tracking-wider mb-2">
             <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-            <span>Kesesuaian dengan Itinerary</span>
+            <span>Kesesuaian dengan Perjalananmu</span>
           </div>
           <h2 className="font-section-title text-lg sm:text-xl font-bold text-on-surface mb-2">
             Cocok untuk Perjalananmu karena:
@@ -144,7 +144,7 @@ export default function FoodDetailPage() {
             className="px-6 py-3 bg-primary text-on-primary hover:bg-[#5e4700] font-button-text font-bold text-sm sm:text-base rounded-xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
           >
             <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-            <span>Rangkai ke Itinerary Trip</span>
+            <span>Masukkan ke Rencana Trip</span>
           </button>
         </Link>
       </div>

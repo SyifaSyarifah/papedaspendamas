@@ -191,7 +191,7 @@ export default function DestinationDetailPage() {
               className="hidden sm:inline-flex items-center gap-1.5 px-4 py-3 rounded-xl border border-border hover:border-primary/50 font-button-text text-sm font-semibold text-on-surface-variant transition-colors"
             >
               <span className="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
-              <span>Rangkai Itinerary</span>
+              <span>Susun Perjalanan</span>
             </button>
           </Link>
         </div>

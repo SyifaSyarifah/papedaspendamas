@@ -19,9 +19,9 @@ export function QuickPlannerForm() {
   ];
 
   const durations: { value: TripDuration; label: string; icon: string }[] = [
-    { value: 'half_day', label: 'Half day', icon: 'schedule' },
-    { value: '1_day', label: '1 Day', icon: 'calendar_today' },
-    { value: '2_days', label: '2 Days', icon: 'calendar_month' },
+    { value: 'half_day', label: 'Setengah Hari', icon: 'schedule' },
+    { value: '1_day', label: '1 Hari', icon: 'calendar_today' },
+    { value: '2_days', label: '2 Hari', icon: 'calendar_month' },
   ];
 
   const interestOptions: { value: DestinationCategory; label: string }[] = [
@@ -39,10 +39,10 @@ export function QuickPlannerForm() {
     { value: 'umum', label: 'Umum', icon: 'directions_bus' },
   ];
 
-  const travelStyles: { value: TravelStyle; label: string; icon: string }[] = [
-    { value: 'santai', label: 'Santai', icon: 'coffee' },
-    { value: 'seimbang', label: 'Seimbang', icon: 'balance' },
-    { value: 'padat', label: 'Padat', icon: 'bolt' },
+  const travelStyles: { value: TravelStyle; label: string; icon: string; subLabel: string }[] = [
+    { value: 'santai', label: 'Santai', icon: 'coffee', subLabel: '2–3 destinasi/hari' },
+    { value: 'seimbang', label: 'Seimbang', icon: 'balance', subLabel: '4–5 destinasi/hari' },
+    { value: 'padat', label: 'Padat', icon: 'bolt', subLabel: '6+ destinasi/hari' },
   ];
 
   const handleInterestToggle = (category: DestinationCategory) => {
@@ -96,7 +96,7 @@ export function QuickPlannerForm() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-section-title font-section-title text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">payments</span>
-              <span>Budget</span>
+              <span>Anggaran Perjalanan</span>
             </h2>
             <span className="font-label-sm text-xs font-semibold text-primary bg-primary-container/20 px-3 py-1 rounded-full">
               Rp{preferences.budget.toLocaleString('id-ID')}
@@ -128,7 +128,7 @@ export function QuickPlannerForm() {
         <section>
           <h2 className="text-section-title font-section-title text-on-surface mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">schedule</span>
-            <span>Duration</span>
+            <span>Durasi Wisata</span>
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {durations.map((d) => {
@@ -169,7 +169,7 @@ export function QuickPlannerForm() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-section-title font-section-title text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">favorite</span>
-              <span>Interests</span>
+              <span>Minat Wisata</span>
             </h2>
             <span className="text-xs font-label-sm text-on-surface-variant">
               {preferences.interests.length} dipilih
@@ -203,7 +203,7 @@ export function QuickPlannerForm() {
           <section>
             <h2 className="text-section-title font-section-title text-on-surface mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">directions_car</span>
-              <span>Transport</span>
+              <span>Kendaraan</span>
             </h2>
             <div className="flex flex-col gap-3">
               {transportOptions.map((t) => {
@@ -239,11 +239,11 @@ export function QuickPlannerForm() {
             </div>
           </section>
 
-          {/* Style */}
+          {/* Tempo Perjalanan */}
           <section>
             <h2 className="text-section-title font-section-title text-on-surface mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">tune</span>
-              <span>Style</span>
+              <span>Tempo Perjalanan</span>
             </h2>
             <div className="flex flex-col gap-3">
               {travelStyles.map((s) => {
@@ -266,13 +266,18 @@ export function QuickPlannerForm() {
                     >
                       {s.icon}
                     </span>
-                    <span
-                      className={`font-body-md text-sm sm:text-base ${
-                        isSelected ? 'font-bold text-on-primary-container' : 'text-on-surface-variant'
-                      }`}
-                    >
-                      {s.label}
-                    </span>
+                    <div className="flex flex-col items-start">
+                      <span
+                        className={`font-body-md text-sm sm:text-base leading-tight ${
+                          isSelected ? 'font-bold text-on-primary-container' : 'text-on-surface-variant'
+                        }`}
+                      >
+                        {s.label}
+                      </span>
+                      <span className="text-xs text-on-surface-variant/70 mt-0.5">
+                        {s.subLabel}
+                      </span>
+                    </div>
                   </button>
                 );
               })}

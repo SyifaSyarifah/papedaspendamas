@@ -27,7 +27,7 @@ export default function MyTripPage() {
             Perjalanan Saya
           </h1>
           <p className="font-body-md text-sm text-on-surface-variant mt-1">
-            Daftar itinerary yang telah kamu simpan dan rencanakan di Gresik.
+            Daftar jadwal perjalanan yang telah kamu simpan dan rencanakan di Gresik.
           </p>
         </div>
 

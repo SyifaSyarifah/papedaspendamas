@@ -142,7 +142,7 @@ export default function MapPage() {
               className="w-full py-3 px-4 bg-primary text-on-primary font-button-text font-bold text-sm rounded-xl shadow-sm hover:bg-[#5e4700] transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">receipt_long</span>
-              <span>Lihat Detail Biaya & Itinerary</span>
+              <span>Lihat Detail Biaya & Jadwal</span>
             </button>
           </Link>
         </div>

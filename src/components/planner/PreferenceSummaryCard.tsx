@@ -22,9 +22,9 @@ export function PreferenceSummaryCard() {
   };
 
   const travelStyleLabels: Record<string, string> = {
-    santai: 'Santai',
-    seimbang: 'Seimbang',
-    padat: 'Padat',
+    santai: 'Santai (2–3 destinasi)',
+    seimbang: 'Seimbang (4–5 destinasi)',
+    padat: 'Padat (6+ destinasi)',
   };
 
   const handleConfirm = () => {
@@ -46,7 +46,7 @@ export function PreferenceSummaryCard() {
             Ringkasan Rencana
           </h2>
           <p className="font-body-md text-xs sm:text-sm text-on-surface-variant">
-            GATRA siap menyusun itinerary berdasarkan preferensi ini
+            GATRA siap menyusun jadwal perjalananmu berdasarkan preferensi ini
           </p>
         </div>
       </div>
@@ -68,7 +68,7 @@ export function PreferenceSummaryCard() {
         <div className="flex items-center justify-between py-2 border-b border-border/80">
           <div className="flex items-center gap-2 text-on-surface-variant text-sm font-medium">
             <span className="material-symbols-outlined text-[18px] text-primary">payments</span>
-            <span>Alokasi Budget</span>
+            <span>Anggaran</span>
           </div>
           <span className="font-label-sm font-bold text-on-primary-container text-xs sm:text-sm px-3 py-1 rounded-full bg-primary-container/20 border border-primary/30">
             Rp{preferences.budget.toLocaleString('id-ID')}
@@ -108,7 +108,7 @@ export function PreferenceSummaryCard() {
         <div className="flex items-center justify-between py-2 border-b border-border/80">
           <div className="flex items-center gap-2 text-on-surface-variant text-sm font-medium">
             <span className="material-symbols-outlined text-[18px] text-primary">directions_car</span>
-            <span>Moda Transportasi</span>
+            <span>Kendaraan</span>
           </div>
           <span className="font-button-text font-bold text-on-surface text-sm sm:text-base capitalize">
             {transportLabels[preferences.transport] || 'Motor'}

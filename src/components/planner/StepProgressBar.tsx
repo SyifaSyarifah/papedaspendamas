@@ -8,7 +8,7 @@ export function StepProgressBar({ currentStep }: StepProgressBarProps) {
   const steps = [
     { number: 1, title: 'Preferensi' },
     { number: 2, title: 'Rekomendasi' },
-    { number: 3, title: 'Itinerary' },
+    { number: 3, title: 'Jadwal Perjalanan' },
   ];
 
   return (

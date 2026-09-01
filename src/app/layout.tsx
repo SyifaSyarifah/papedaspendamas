@@ -8,7 +8,7 @@ import { BottomNav } from '../components/common/BottomNav';
 export const metadata: Metadata = {
   title: 'GATRA — AI Travel Planner Gresik',
   description:
-    'Asisten perencanaan perjalanan wisata personal di Kabupaten Gresik berbasis AI. Temukan destinasi, kuliner, dan susun itinerary impianmu dengan mudah.',
+    'Asisten perencanaan perjalanan wisata personal di Kabupaten Gresik berbasis AI. Temukan destinasi, kuliner, dan susun jadwal perjalanan impianmu dengan mudah.',
 };
 
 export default function RootLayout({

@@ -99,7 +99,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <div className="font-section-title font-bold text-sm text-on-surface">Perjalanan Tersimpan</div>
-              <div className="font-body-md text-xs text-on-surface-variant">{savedTrips.length} itinerary aktif</div>
+              <div className="font-body-md text-xs text-on-surface-variant">{savedTrips.length} jadwal tersimpan</div>
             </div>
           </div>
           <span className="material-symbols-outlined text-on-surface-variant text-[20px]">chevron_right</span>

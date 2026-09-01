@@ -17,7 +17,7 @@ export function AIChatInterface() {
     {
       id: 'msg-1',
       sender: 'ai',
-      text: 'Halo! Saya GATRA. Ceritakan perjalanan yang kamu inginkan di Gresik, nanti saya bantu pilihkan destinasi, kuliner, dan susunkan itinerary terbaik.',
+      text: 'Halo! Saya GATRA. Ceritakan perjalanan yang kamu inginkan di Gresik, nanti saya bantu pilihkan destinasi, kuliner, dan susunkan jadwal perjalanan terbaik.',
       timestamp: '09:00',
       quickChoices: [
         'Saya punya budget 150 ribu & suka sejarah',
@@ -175,7 +175,7 @@ export function AIChatInterface() {
               <div className="w-2 h-2 rounded-full bg-[#4CAF50] animate-pulse" />
             </div>
             <div className="font-label-sm text-xs text-text-secondary mt-0.5">
-              Personal Local Companion
+              Asisten Perjalanan Lokal
             </div>
           </div>
         </div>

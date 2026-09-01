@@ -39,7 +39,7 @@ function PlanContent() {
             }`}
           >
             <SlidersHorizontal className="w-4 h-4 text-[#B8870A]" />
-            <span>Quick Form Planner</span>
+            <span>Atur Preferensi</span>
           </button>
 
           <button

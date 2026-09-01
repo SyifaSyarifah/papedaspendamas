@@ -8,11 +8,11 @@ export function BottomNav() {
   const pathname = usePathname();
 
   const items = [
-    { label: 'Home', href: '/', icon: 'home' },
-    { label: 'Plan', href: '/plan', icon: 'edit_calendar' },
-    { label: 'Explore', href: '/explore', icon: 'explore' },
-    { label: 'My Trip', href: '/my-trip', icon: 'travel' },
-    { label: 'Profile', href: '/profile', icon: 'person' },
+    { label: 'Beranda', href: '/', icon: 'home' },
+    { label: 'Rencana', href: '/plan', icon: 'edit_calendar' },
+    { label: 'Jelajahi', href: '/explore', icon: 'explore' },
+    { label: 'Perjalananku', href: '/my-trip', icon: 'travel' },
+    { label: 'Profil', href: '/profile', icon: 'person' },
   ];
 
   return (

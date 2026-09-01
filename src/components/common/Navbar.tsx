@@ -35,9 +35,9 @@ export function Navbar() {
 
   const navLinks = [
     { label: 'Beranda', href: '/' },
-    { label: 'Plan', href: '/plan' },
-    { label: 'Explore', href: '/explore' },
-    { label: 'My Trip', href: '/my-trip' },
+    { label: 'Rencana', href: '/plan' },
+    { label: 'Jelajahi', href: '/explore' },
+    { label: 'Perjalanan Saya', href: '/my-trip' },
   ];
 
   return (

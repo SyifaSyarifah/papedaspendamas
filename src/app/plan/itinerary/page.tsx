@@ -98,7 +98,7 @@ export default function ItineraryPage() {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[22px]">event_note</span>
               <h2 className="font-section-title text-xl font-bold text-on-surface">
-                Timeline Agenda
+                Agenda Perjalanan
               </h2>
             </div>
             <span className="font-label-sm text-xs text-on-surface-variant bg-surface-container px-3 py-1 rounded-full font-medium">
