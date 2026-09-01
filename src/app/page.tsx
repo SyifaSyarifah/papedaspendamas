@@ -46,10 +46,10 @@ export default function HomePage() {
       </div>
 
       {/* 2. Hero & AI Input Section */}
-      <section className="w-full relative z-10 max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop pb-20 pt-12 sm:pt-16 md:pt-20 lg:pt-24">
-        <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-10 md:space-y-12">
+      <section className="w-full relative z-10 max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop pt-4 sm:pt-6 md:pt-8 pb-4">
+        <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-6 md:space-y-8">
           {/* Title Area */}
-          <div className="space-y-4 animate-fade-in-up">
+          <div className="space-y-2.5 animate-fade-in-up">
             <h1 className="font-hero-lg text-hero-lg-mobile md:text-hero-lg text-on-background tracking-tight">
               Jalan-jalan ke Gresik, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-[#b38800]">
@@ -63,20 +63,18 @@ export default function HomePage() {
           </div>
 
           {/* Main AI Input Component */}
-          <div className="w-full relative animate-fade-in-up pt-1 sm:pt-2" style={{ animationDelay: '0.1s' }}>
+          <div className="w-full relative animate-fade-in-up pt-1" style={{ animationDelay: '0.1s' }}>
             {/* Glowing aura */}
             <div
-              className={`absolute inset-0 bg-primary-container/30 rounded-[26px] blur-xl scale-[1.02] transition-opacity duration-300 pointer-events-none ${
-                isFocused ? 'opacity-100' : 'opacity-60'
-              }`}
+              className={`absolute inset-0 bg-primary-container/30 rounded-[26px] blur-xl scale-[1.02] transition-opacity duration-300 pointer-events-none ${isFocused ? 'opacity-100' : 'opacity-60'
+                }`}
             />
 
             <div
-              className={`relative bg-surface rounded-[24px] p-2 sm:p-3 shadow-[0_10px_30px_rgba(37,37,37,0.05)] border transition-all duration-300 ${
-                isFocused
+              className={`relative bg-surface rounded-[24px] p-2 sm:p-3 shadow-[0_10px_30px_rgba(37,37,37,0.05)] border transition-all duration-300 ${isFocused
                   ? 'border-primary shadow-[0_15px_40px_rgba(119,90,0,0.12)]'
                   : 'border-border hover:border-primary/50 hover:shadow-[0_15px_40px_rgba(37,37,37,0.08)]'
-              }`}
+                }`}
             >
               <form onSubmit={handleHeroSubmit} className="flex flex-col md:flex-row gap-2">
                 <div className="relative flex-1 flex items-center">
@@ -120,7 +118,7 @@ export default function HomePage() {
 
           {/* Quick Inspiration Chips */}
           <div className="w-full animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <div className="flex flex-wrap items-center justify-center gap-2">
               <span className="font-label-sm text-label-sm text-on-surface-variant/70 uppercase tracking-widest mr-1 text-xs">
                 Inspirasi:
               </span>
@@ -131,11 +129,10 @@ export default function HomePage() {
                     key={chip.label}
                     type="button"
                     onClick={() => handleChipClick(chip)}
-                    className={`px-4 py-2 rounded-full font-label-sm text-label-sm transition-all duration-200 active:scale-95 border ${
-                      isActive
+                    className={`px-3.5 py-1.5 rounded-full font-label-sm text-label-sm transition-all duration-200 active:scale-95 border ${isActive
                         ? 'bg-primary-container/30 border-primary text-on-surface font-semibold shadow-xs'
                         : 'bg-surface border-border hover:border-primary/50 text-on-surface-variant hover:text-on-surface'
-                    }`}
+                      }`}
                   >
                     {chip.label}
                   </button>
@@ -146,14 +143,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Visual / Interactive Divider */}
-      <div className="w-full flex justify-center py-4">
-        <div className="w-[1px] h-20 bg-gradient-to-b from-primary/30 to-transparent" />
-      </div>
-
       {/* 3. Featured Destinations (Bento Grid Style) */}
-      <section className="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop py-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+      <section className="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop py-6 md:py-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-5 gap-3">
           <div className="space-y-1">
             <h2 className="font-headline-md text-headline-md text-on-background">
               Destinasi Populer
@@ -175,7 +167,7 @@ export default function HomePage() {
         </div>
 
         {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto md:h-[540px]">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 h-auto md:h-[500px]">
           {/* Card 1: Large Featured (Spans 8 cols) */}
           <Link
             href="/explore/destination/dest-1"
@@ -212,11 +204,11 @@ export default function HomePage() {
           </Link>
 
           {/* Right Column for smaller cards (Spans 4 cols) */}
-          <div className="md:col-span-4 grid grid-cols-1 gap-6 h-full">
+          <div className="md:col-span-4 grid grid-cols-1 gap-5 h-full">
             {/* Card 2: Medium Culinary */}
             <Link
               href="/explore?tab=culinary"
-              className="group block relative rounded-[24px] overflow-hidden bg-surface-container-high h-56 md:h-auto shadow-sm hover:shadow-card transition-all duration-300"
+              className="group block relative rounded-[24px] overflow-hidden bg-surface-container-high h-52 md:h-auto shadow-sm hover:shadow-card transition-all duration-300"
             >
               <Image
                 src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80"
@@ -225,7 +217,7 @@ export default function HomePage() {
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent" />
-              <div className="absolute inset-0 p-6 flex flex-col justify-end">
+              <div className="absolute inset-0 p-5 flex flex-col justify-end">
                 <span className="text-primary-fixed font-label-sm text-xs font-semibold mb-1 uppercase tracking-wider">
                   Kuliner Legenda
                 </span>
@@ -238,24 +230,24 @@ export default function HomePage() {
             {/* Card 3: Medium with AI Context */}
             <Link
               href="/plan"
-              className="group block relative rounded-[24px] overflow-hidden bg-surface border border-border p-6 shadow-[0_10px_30px_rgba(37,37,37,0.03)] hover:shadow-[0_15px_40px_rgba(37,37,37,0.08)] transition-all duration-300 hover:border-primary/50"
+              className="group block relative rounded-[24px] overflow-hidden bg-surface border border-border p-5 shadow-[0_10px_30px_rgba(37,37,37,0.03)] hover:shadow-[0_15px_40px_rgba(37,37,37,0.08)] transition-all duration-300 hover:border-primary/50"
             >
               <div className="flex flex-col h-full justify-between">
-                <div className="space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-fixed">
-                    <span className="material-symbols-outlined text-[24px]">map</span>
+                <div className="space-y-2.5">
+                  <div className="w-11 h-11 rounded-2xl bg-secondary-container flex items-center justify-center text-on-secondary-fixed">
+                    <span className="material-symbols-outlined text-[22px]">map</span>
                   </div>
                   <div>
-                    <h3 className="font-section-title text-lg text-on-surface font-bold mb-1 group-hover:text-primary transition-colors">
+                    <h3 className="font-section-title text-base md:text-lg text-on-surface font-bold mb-0.5 group-hover:text-primary transition-colors">
                       Jelajah Alam & Pesisir
                     </h3>
-                    <p className="font-body-md text-sm text-on-surface-variant line-clamp-2">
+                    <p className="font-body-md text-xs md:text-sm text-on-surface-variant line-clamp-2">
                       Mulai dari Bukit Jamur hingga Pantai Dalegan. Dapatkan rute efisien sesuai durasi liburanmu.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between">
                   <span className="font-label-sm text-xs text-text-secondary flex items-center gap-1.5 font-medium">
                     <span className="material-symbols-outlined text-[16px] text-primary">auto_awesome</span>
                     Rekomendasi AI
@@ -271,10 +263,10 @@ export default function HomePage() {
       </section>
 
       {/* 4. How GATRA Works (3 Steps) */}
-      <section className="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop py-12">
-        <div className="bg-surface rounded-[2.5rem] border border-border p-8 md:p-12 shadow-sm">
-          <div className="text-center max-w-xl mx-auto mb-10">
-            <h2 className="font-headline-md text-2xl md:text-3xl font-bold text-on-surface mb-2">
+      <section className="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop py-5 md:py-6">
+        <div className="bg-surface rounded-[2rem] border border-border p-6 md:p-10 shadow-sm">
+          <div className="text-center max-w-xl mx-auto mb-7">
+            <h2 className="font-headline-md text-2xl md:text-3xl font-bold text-on-surface mb-1.5">
               Perjalanan Personal dalam 3 Langkah
             </h2>
             <p className="font-body-md text-on-surface-variant text-sm md:text-base">
@@ -282,9 +274,9 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-surface-container-low border border-border flex flex-col items-center text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary-container font-bold text-lg flex items-center justify-center shadow-xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div className="p-5 rounded-2xl bg-surface-container-low border border-border flex flex-col items-center text-center space-y-2.5">
+              <div className="w-11 h-11 rounded-full bg-primary-container text-on-primary-container font-bold text-base flex items-center justify-center shadow-xs">
                 1
               </div>
               <h3 className="font-section-title text-base md:text-lg font-bold text-on-surface">
@@ -295,8 +287,8 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-surface-container-low border border-border flex flex-col items-center text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary-container font-bold text-lg flex items-center justify-center shadow-xs">
+            <div className="p-5 rounded-2xl bg-surface-container-low border border-border flex flex-col items-center text-center space-y-2.5">
+              <div className="w-11 h-11 rounded-full bg-primary-container text-on-primary-container font-bold text-base flex items-center justify-center shadow-xs">
                 2
               </div>
               <h3 className="font-section-title text-base md:text-lg font-bold text-on-surface">
@@ -307,8 +299,8 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-surface-container-low border border-border flex flex-col items-center text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary-container font-bold text-lg flex items-center justify-center shadow-xs">
+            <div className="p-5 rounded-2xl bg-surface-container-low border border-border flex flex-col items-center text-center space-y-2.5">
+              <div className="w-11 h-11 rounded-full bg-primary-container text-on-primary-container font-bold text-base flex items-center justify-center shadow-xs">
                 3
               </div>
               <h3 className="font-section-title text-base md:text-lg font-bold text-on-surface">
@@ -323,18 +315,18 @@ export default function HomePage() {
       </section>
 
       {/* 5. Bottom Call to Action */}
-      <section className="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop pb-12">
-        <div className="relative rounded-[2.5rem] bg-gradient-to-r from-primary to-[#5a4400] text-on-primary p-8 md:p-14 text-center overflow-hidden shadow-lg">
-          <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+      <section className="w-full max-w-container-max mx-auto px-margin-mobile lg:px-margin-desktop py-5 md:py-6 pb-12 md:pb-16">
+        <div className="relative rounded-[2rem] bg-gradient-to-r from-primary to-[#5a4400] text-on-primary p-6 md:p-10 text-center overflow-hidden shadow-lg border border-primary/20">
+          <div className="relative z-10 max-w-2xl mx-auto space-y-3.5">
             <h2 className="font-headline-md text-2xl md:text-4xl font-bold tracking-tight text-white">
               Siap Jelajahi Keindahan Gresik?
             </h2>
             <p className="font-body-lg text-sm md:text-base text-surface-variant max-w-xl mx-auto opacity-95">
               Mulai rencanakan liburanmu bersama asisten AI personal GATRA. Cepat, hemat, dan terstruktur.
             </p>
-            <div className="pt-3">
+            <div className="pt-2">
               <Link href="/plan">
-                <button className="px-8 py-4 bg-primary-container text-on-primary-fixed hover:bg-white hover:text-on-surface font-button-text text-base font-bold rounded-2xl transition-all shadow-md active:scale-95 inline-flex items-center gap-2">
+                <button className="px-7 py-3.5 bg-primary-container text-on-primary-fixed hover:bg-white hover:text-on-surface font-button-text text-sm md:text-base font-bold rounded-2xl transition-all shadow-md active:scale-95 inline-flex items-center gap-2">
                   <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
                   <span>Mulai Rencanakan Sekarang</span>
                 </button>
