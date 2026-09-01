@@ -18,7 +18,7 @@ export const GRESIK_DESTINATIONS: Destination[] = [
     openingHours: '24 Jam (Terbaik: 15.30 - 21.00)',
     recommendedDurationMinutes: 90,
     address: 'Jl. Basuki Rahmat, Kebungson, Kec. Gresik, Kabupaten Gresik',
-    image: 'https://images.unsplash.com/photo-1590059390047-660c184cbe23?auto=format&fit=crop&w=800&q=80',
+    image: 'https://jatimnow.com/po-content/uploads/202301/bandar-grissee-1.jpg',
     facilities: ['Spot Foto Heritage', 'Jalur Pedestrian', 'Kedai Kopi', 'Penerangan Artistik', 'Area Parkir'],
     highlights: ['Arsitektur Kolonial & Pecinan', 'Kelenteng Kim Hin Kiong', 'Suasana Malam Estetik', 'Wisata Jalan Kaki'],
     bestTimeToVisit: 'Sore hari (16:00 - 18:30)',
