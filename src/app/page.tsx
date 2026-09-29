@@ -170,13 +170,14 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 h-auto md:h-[500px]">
           {/* Card 1: Large Featured (Spans 8 cols) */}
           <Link
-            href="/explore/destination/dest-1"
+            href={`/explore/destination/${GRESIK_DESTINATIONS[0]?.id || 'bandar-grissee'}`}
             className="group block md:col-span-8 relative rounded-[24px] overflow-hidden bg-surface-container-high aspect-video md:aspect-auto shadow-sm hover:shadow-card transition-all duration-300"
           >
             <Image
-              src="https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=1200&q=80"
-              alt="Bandar Grisse"
+              src={GRESIK_DESTINATIONS[0]?.image || 'https://jatimnow.com/po-content/uploads/202301/bandar-grissee-1.jpg'}
+              alt={GRESIK_DESTINATIONS[0]?.name || 'Bandar Grisse'}
               fill
+              sizes="(max-width: 768px) 100vw, 66vw"
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
             {/* Gradient Scrim */}
@@ -191,13 +192,13 @@ export default function HomePage() {
               </div>
               <div className="space-y-2">
                 <span className="text-primary-fixed font-label-sm text-xs tracking-wider uppercase font-semibold">
-                  Sejarah & Budaya
+                  {GRESIK_DESTINATIONS[0]?.categoryLabel || 'Sejarah & Budaya'}
                 </span>
                 <h3 className="font-headline-md text-2xl md:text-3xl text-surface group-hover:text-primary-fixed transition-colors font-bold">
-                  Bandar Grisse & Kota Tua
+                  {GRESIK_DESTINATIONS[0]?.name || 'Bandar Grisse & Kota Tua'}
                 </h3>
                 <p className="font-body-md text-sm md:text-base text-surface-variant max-w-md line-clamp-2">
-                  Kawasan cagar budaya yang memadukan arsitektur Kolonial, Arab, dan Pecinan dalam harmoni kota pelabuhan kuno.
+                  {GRESIK_DESTINATIONS[0]?.description || 'Kawasan cagar budaya yang memadukan arsitektur Kolonial, Arab, dan Pecinan dalam harmoni kota pelabuhan kuno.'}
                 </p>
               </div>
             </div>
@@ -211,9 +212,10 @@ export default function HomePage() {
               className="group block relative rounded-[24px] overflow-hidden bg-surface-container-high h-52 md:h-auto shadow-sm hover:shadow-card transition-all duration-300"
             >
               <Image
-                src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80"
-                alt="Kuliner Khas Nasi Krawu"
+                src={GRESIK_CULINARY[0]?.image || 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80'}
+                alt={GRESIK_CULINARY[0]?.name || 'Kuliner Khas Nasi Krawu'}
                 fill
+                sizes="(max-width: 768px) 100vw, 33vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/20 to-transparent" />
@@ -222,7 +224,7 @@ export default function HomePage() {
                   Kuliner Legenda
                 </span>
                 <h3 className="font-section-title text-xl text-surface font-bold group-hover:text-primary-fixed transition-colors">
-                  Surga Nasi Krawu & Pudak
+                  {GRESIK_CULINARY[0]?.name || 'Surga Nasi Krawu & Pudak'}
                 </h3>
               </div>
             </Link>
