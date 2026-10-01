@@ -1,9 +1,39 @@
 'use client';
 
+/**
+ * AIChatInterface.tsx — Task 2.3 & 2.4
+ *
+ * Perubahan dari versi sebelumnya:
+ * - processUserQuery() diganti dengan panggilan fetch ke /api/ai/chat (Task 2.3)
+ * - Menampilkan loading progress kontekstual: "Memahami preferensi... Mencari destinasi..."
+ * - Fallback banner muncul jika API offline (Task 2.4)
+ * - Preferensi yang diekstrak AI otomatis di-sync ke TripPlannerContext
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTripPlanner } from '../../context/TripPlannerContext';
-import { ChatMessage } from '../../types/planner';
+import { ChatMessage, UserPreferences } from '../../types/planner';
+
+// Tipe respons dari /api/ai/chat
+interface ChatAPIResponse {
+  extractedPreferences?: Partial<UserPreferences>;
+  intent?: string;
+  missingParameters?: string[];
+  isComplete?: boolean;
+  reply?: string;
+  quickChoices?: string[];
+  isOffline?: boolean;
+  fallbackMessage?: string;
+  error?: string;
+}
+
+// Label kontekstual untuk loading progress (PRD 02 Bab 38)
+const LOADING_STAGES = [
+  'Memahami preferensimu...',
+  'Mencari destinasi terbaik...',
+  'Menyusun rekomendasi...',
+];
 
 export function AIChatInterface() {
   const router = useRouter();
@@ -12,6 +42,10 @@ export function AIChatInterface() {
 
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
+  // Task 2.4: state untuk menampilkan fallback banner jika AI offline
+  const [isAIOffline, setIsAIOffline] = useState(false);
+  const [offlineMessage, setOfflineMessage] = useState('');
 
   const initialMessages: ChatMessage[] = [
     {
@@ -28,6 +62,12 @@ export function AIChatInterface() {
   ];
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+
+  // Referensi ke riwayat pesan untuk multi-turn context ke API
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const visualOptions = [
     {
@@ -55,10 +95,56 @@ export function AIChatInterface() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = (textToSend?: string) => {
-    const query = (textToSend || input).trim();
-    if (!query) return;
+  // Animasi loading stage yang berganti-ganti saat isTyping = true
+  useEffect(() => {
+    if (!isTyping) {
+      setLoadingStage(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingStage((prev) => (prev + 1) % LOADING_STAGES.length);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [isTyping]);
 
+  /**
+   * Task 2.3 — Ganti regex mock dengan fetch ke /api/ai/chat
+   */
+  const callAIChat = async (query: string): Promise<ChatAPIResponse> => {
+    // Sertakan riwayat percakapan untuk multi-turn context
+    const historyForAPI = messagesRef.current.map((m) => ({
+      sender: m.sender,
+      text: m.text,
+    }));
+
+    // Tambahkan pesan user terbaru ke riwayat
+    historyForAPI.push({ sender: 'user', text: query });
+
+    // Preferensi yang sudah terekstrak sebagai konteks tambahan
+    const currentPrefs: Record<string, unknown> = {};
+    if (preferences.budget) currentPrefs.budget = preferences.budget;
+    if (preferences.duration) currentPrefs.duration = preferences.duration;
+    if (preferences.interests.length > 0) currentPrefs.interests = preferences.interests;
+    if (preferences.transport) currentPrefs.transport = preferences.transport;
+
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: historyForAPI,
+        currentPreferences: Object.keys(currentPrefs).length > 0 ? currentPrefs : undefined,
+      }),
+      signal: AbortSignal.timeout(12000), // 12 detik timeout di sisi frontend
+    });
+
+    return response.json();
+  };
+
+  const handleSend = async (textToSend?: string) => {
+    const query = (textToSend || input).trim();
+    if (!query || isTyping) return;
+
+    // Tambahkan pesan user ke chat
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -69,92 +155,89 @@ export function AIChatInterface() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
+    setIsAIOffline(false); // Reset status offline setiap ada percakapan baru
 
-    setTimeout(() => {
-      processUserQuery(query);
+    try {
+      const data = await callAIChat(query);
+
       setIsTyping(false);
-    }, 800);
-  };
 
-  const processUserQuery = (query: string) => {
-    const lower = query.toLowerCase();
+      // Task 2.4 — Jika API offline, tampilkan fallback banner
+      if (data.isOffline) {
+        setIsAIOffline(true);
+        setOfflineMessage(
+          data.fallbackMessage ||
+            'GATRA AI sedang offline. Gunakan Quick Planner untuk menyusun perjalananmu.'
+        );
+        return; // Hentikan proses, jangan tambah pesan AI
+      }
 
-    // Parse Budget
-    if (lower.includes('100') || lower.includes('100k') || lower.includes('100 ribu')) {
-      updatePreferences({ budget: 100000 });
-    } else if (lower.includes('150') || lower.includes('150k') || lower.includes('150 ribu')) {
-      updatePreferences({ budget: 150000 });
-    } else if (lower.includes('200') || lower.includes('200k') || lower.includes('200 ribu')) {
-      updatePreferences({ budget: 200000 });
-    } else if (lower.includes('300') || lower.includes('300k') || lower.includes('300 ribu')) {
-      updatePreferences({ budget: 300000 });
-    }
+      // Sync preferensi yang diekstrak AI ke TripPlannerContext
+      if (data.extractedPreferences) {
+        const prefs = data.extractedPreferences;
+        const partialUpdate: Partial<UserPreferences> = {};
 
-    // Parse Interests
-    const newInterests = [...preferences.interests];
-    if (lower.includes('sejarah') && !newInterests.includes('sejarah')) newInterests.push('sejarah');
-    if (lower.includes('kuliner') && !newInterests.includes('kuliner')) newInterests.push('kuliner');
-    if (lower.includes('alam') && !newInterests.includes('alam')) newInterests.push('alam');
-    if (lower.includes('keluarga') && !newInterests.includes('keluarga')) newInterests.push('keluarga');
-    if (lower.includes('religi') || lower.includes('ziarah') || lower.includes('wali')) {
-      if (!newInterests.includes('religi')) newInterests.push('religi');
-    }
-    if (newInterests.length > 0) {
-      updatePreferences({ interests: newInterests });
-    }
+        if (prefs.budget != null) partialUpdate.budget = prefs.budget;
+        if (prefs.duration != null) partialUpdate.duration = prefs.duration;
+        if (prefs.transport != null) partialUpdate.transport = prefs.transport;
+        if (prefs.travelStyle != null) partialUpdate.travelStyle = prefs.travelStyle;
+        if (prefs.startLocation != null) partialUpdate.startLocation = prefs.startLocation;
+        if (Array.isArray(prefs.interests) && prefs.interests.length > 0) {
+          // Merge interests (tidak hapus yang sudah ada)
+          const merged = [...new Set([...preferences.interests, ...prefs.interests])];
+          partialUpdate.interests = merged as UserPreferences['interests'];
+        }
 
-    // Parse Duration
-    if (lower.includes('setengah hari') || lower.includes('half day')) updatePreferences({ duration: 'half_day' });
-    if (lower.includes('1 hari') || lower.includes('satu hari') || lower.includes('1 day')) updatePreferences({ duration: '1_day' });
-    if (lower.includes('2 hari') || lower.includes('dua hari') || lower.includes('2 days')) updatePreferences({ duration: '2_days' });
+        if (Object.keys(partialUpdate).length > 0) {
+          updatePreferences(partialUpdate);
+        }
+      }
 
-    // Parse Transport
-    if (lower.includes('motor')) updatePreferences({ transport: 'motor' });
-    if (lower.includes('mobil')) updatePreferences({ transport: 'mobil' });
-    if (lower.includes('umum') || lower.includes('bus') || lower.includes('angkot')) updatePreferences({ transport: 'umum' });
-
-    // AI Conversational Flow
-    if (lower.includes('sejarah') || lower.includes('alam') || lower.includes('kuliner') || lower.includes('150')) {
+      // Tambahkan respons AI ke chat
       const aiReply: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
-        text: 'Siap! Saya sudah mencatat minat dan budgetmu. Kamu ingin perjalanan berapa lama dan naik kendaraan apa?',
+        text:
+          data.reply ||
+          'Ceritakan lebih lanjut tentang rencana perjalananmu di Gresik!',
         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        quickChoices: ['Setengah Hari (Motor)', '1 Hari (Motor)', '1 Hari (Mobil)', 'Lanjut ke Rekomendasi'],
+        quickChoices: data.quickChoices ?? [],
       };
+
       setMessages((prev) => [...prev, aiReply]);
-    } else if (lower.includes('motor') || lower.includes('mobil') || lower.includes('hari') || lower.includes('santai')) {
-      const aiReply: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        sender: 'ai',
-        text: 'Sempurna! Semua preferensi utamamu telah terangkum. Yuk kita lihat rekomendasi destinasi yang paling cocok.',
-        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        quickChoices: ['Lihat Rekomendasi Destinasi', 'Ganti Budget / Minat'],
-      };
-      setMessages((prev) => [...prev, aiReply]);
-    } else {
-      const aiReply: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        sender: 'ai',
-        text: `Baik, saya siap membantu! Saat ini budgetmu tersetting Rp${preferences.budget.toLocaleString('id-ID')}. Pilih opsi di bawah atau ceritakan rencanamu:`,
-        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        quickChoices: ['1 Hari Santai (Sejarah & Kuliner)', 'Setengah Hari (Alam & Foto)', 'Lanjut ke Rekomendasi'],
-      };
-      setMessages((prev) => [...prev, aiReply]);
+
+      // Jika preferensi sudah lengkap, otomatis redirect ke summary (dengan delay)
+      if (data.isComplete) {
+        setTimeout(() => {
+          router.push('/plan/summary');
+        }, 1500);
+      }
+    } catch {
+      setIsTyping(false);
+      // Task 2.4 — Error fetch (timeout, jaringan terputus, dll)
+      setIsAIOffline(true);
+      setOfflineMessage(
+        'GATRA AI sedang offline karena koneksi internet terputus. Kamu tetap bisa menyusun itinerary lewat Quick Planner!'
+      );
     }
   };
 
   const handleQuickChoiceClick = (choice: string) => {
-    if (choice.includes('Rekomendasi') || choice.includes('Lanjut')) {
+    if (choice.includes('Rekomendasi') || choice.includes('Lihat Rekomendasi')) {
       router.push('/plan/summary');
       return;
     }
     handleSend(choice);
   };
 
-  const handleVisualSelect = (opt: typeof visualOptions[0]) => {
+  const handleVisualSelect = (opt: (typeof visualOptions)[0]) => {
     updatePreferences({ interests: [opt.category] });
     handleSend(`Saya tertarik dengan wisata ${opt.label}`);
+  };
+
+  // Task 2.4 — Handle klik tombol fallback ke Quick Planner
+  const handleGoToQuickPlanner = () => {
+    router.push('/plan?mode=quick');
   };
 
   return (
@@ -172,23 +255,53 @@ export function AIChatInterface() {
               <h2 className="font-section-title text-base sm:text-lg font-bold text-on-surface m-0">
                 GATRA AI
               </h2>
-              <div className="w-2 h-2 rounded-full bg-[#4CAF50] animate-pulse" />
+              {/* Indikator status: hijau = online, abu = offline */}
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isAIOffline
+                    ? 'bg-gray-400'
+                    : 'bg-[#4CAF50] animate-pulse'
+                }`}
+              />
             </div>
             <div className="font-label-sm text-xs text-text-secondary mt-0.5">
-              Asisten Perjalanan Lokal
+              {isAIOffline ? 'Sedang Offline' : 'Asisten Perjalanan Lokal'}
             </div>
           </div>
         </div>
 
         <button
           type="button"
-          onClick={() => setMessages(initialMessages)}
+          onClick={() => {
+            setMessages(initialMessages);
+            setIsAIOffline(false);
+          }}
           className="p-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors"
           title="Reset obrolan"
         >
           <span className="material-symbols-outlined text-[20px]">refresh</span>
         </button>
       </div>
+
+      {/* Task 2.4 — Fallback Banner (muncul jika AI offline) */}
+      {isAIOffline && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 shrink-0">
+          <span className="material-symbols-outlined text-amber-500 text-[20px] shrink-0 mt-0.5">
+            wifi_off
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800 mb-0.5">GATRA AI Sedang Offline</p>
+            <p className="text-xs text-amber-700 leading-relaxed">{offlineMessage}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleGoToQuickPlanner}
+            className="shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors whitespace-nowrap"
+          >
+            Quick Planner
+          </button>
+        </div>
+      )}
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6 bg-surface-container-lowest" id="chat-container">
@@ -210,7 +323,8 @@ export function AIChatInterface() {
                 key={opt.label}
                 type="button"
                 onClick={() => handleVisualSelect(opt)}
-                className="group flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface border border-border hover:border-primary transition-all active:scale-95 shadow-2xs"
+                disabled={isTyping}
+                className="group flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface border border-border hover:border-primary transition-all active:scale-95 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div
                   className="w-full h-14 rounded-lg bg-cover bg-center group-hover:scale-102 transition-transform"
@@ -279,7 +393,8 @@ export function AIChatInterface() {
                       key={i}
                       type="button"
                       onClick={() => handleQuickChoiceClick(choice)}
-                      className="px-4 py-2 rounded-full border border-border bg-surface font-button-text text-xs sm:text-sm text-on-surface-variant hover:border-primary hover:text-primary hover:bg-warning-soft/30 transition-all shadow-xs flex items-center gap-1.5 active:scale-95 text-left"
+                      disabled={isTyping}
+                      className="px-4 py-2 rounded-full border border-border bg-surface font-button-text text-xs sm:text-sm text-on-surface-variant hover:border-primary hover:text-primary hover:bg-warning-soft/30 transition-all shadow-xs flex items-center gap-1.5 active:scale-95 text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <span className="material-symbols-outlined text-[16px] text-primary">
                         schedule
@@ -293,7 +408,7 @@ export function AIChatInterface() {
           );
         })}
 
-        {/* Typing indicator */}
+        {/* Loading indicator dengan label kontekstual (PRD 02 Bab 38) */}
         {isTyping && (
           <div className="flex flex-col gap-1">
             <div className="ml-14 font-label-sm text-xs text-text-secondary mb-1">GATRA</div>
@@ -301,10 +416,15 @@ export function AIChatInterface() {
               <div className="w-10 h-10 rounded-full bg-primary-container shrink-0 flex items-center justify-center">
                 <span className="material-symbols-outlined text-on-primary-container text-sm">auto_awesome</span>
               </div>
-              <div className="bg-warning-soft px-4 py-3 rounded-[20px] rounded-tl-xs shadow-sm flex gap-1.5 items-center h-[44px]">
-                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="bg-warning-soft px-4 py-3 rounded-[20px] rounded-tl-xs shadow-sm flex flex-col gap-1.5 min-w-[180px]">
+                <div className="flex gap-1.5 items-center h-[24px]">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="text-xs text-text-secondary animate-pulse">
+                  {LOADING_STAGES[loadingStage]}
+                </span>
               </div>
             </div>
           </div>
@@ -334,13 +454,14 @@ export function AIChatInterface() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ketik preferensi atau pesan..."
-            className="w-full bg-surface border border-border rounded-full py-3.5 pl-12 pr-14 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all font-body-md text-sm sm:text-base text-on-surface placeholder:text-text-secondary/60"
+            placeholder={isAIOffline ? 'AI offline — gunakan Quick Planner' : 'Ketik preferensi atau pesan...'}
+            disabled={isTyping}
+            className="w-full bg-surface border border-border rounded-full py-3.5 pl-12 pr-14 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all font-body-md text-sm sm:text-base text-on-surface placeholder:text-text-secondary/60 disabled:opacity-60"
           />
 
           <button
             type="submit"
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
             className="absolute right-2 p-2.5 bg-primary-container text-on-primary-container rounded-full hover:bg-primary hover:text-on-primary transition-colors shadow-xs flex items-center justify-center disabled:opacity-40 active:scale-95"
           >
             <span className="material-symbols-outlined text-[18px]">
@@ -358,4 +479,3 @@ export function AIChatInterface() {
     </div>
   );
 }
-

@@ -265,10 +265,10 @@ Silakan centang dan cantumkan nama anggota tim yang bertugas:
 
 ```text
 === SPRINT 2: AI BACKEND & ORCHESTRATOR ===
-[ ] 2.1 Buat API Route `/api/ai/chat` (Ollama/Cloud LLM Adapter)  --> PIC: [ ____________ ]
-[ ] 2.2 System Prompt & JSON Structured Preference Extractor     --> PIC: [ ____________ ]
-[ ] 2.3 Sambungkan AIChatInterface.tsx ke API Route               --> PIC: [ ____________ ]
-[ ] 2.4 Mekanisme AI Fallback jika LLM Offline                   --> PIC: [ ____________ ]
+[x] 2.1 Buat API Route `/api/ai/chat` (Ollama/Cloud LLM Adapter)  --> PIC: [ Neo ]
+[x] 2.2 System Prompt & JSON Structured Preference Extractor     --> PIC: [ Neo ]
+[x] 2.3 Sambungkan AIChatInterface.tsx ke API Route               --> PIC: [ Neo ]
+[x] 2.4 Mekanisme AI Fallback jika LLM Offline                   --> PIC: [ Neo ]
 
 === SPRINT 3: DATA & REAL ROUTING (OSRM) ===
 [ ] 3.1 Verifikasi Data Koordinat & Jam Buka Destinasi Gresik     --> PIC: [ ____________ ]
