@@ -4,85 +4,49 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTripPlanner } from '../../../context/TripPlannerContext';
-import { ReplanningDiff } from '../../../types/itinerary';
+import { handleReplan } from '../../../lib/replanningEngine';
 
 export default function ReplanPage() {
   const router = useRouter();
   const { activeItinerary, setReplanningDiff } = useTripPlanner();
   const [customText, setCustomText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const currentTotal = activeItinerary?.budget.total || 125000;
-
-  const handleActionCard = (type: 'budget' | 'culinary' | 'style') => {
-    let diff: ReplanningDiff;
-
-    if (type === 'culinary') {
-      diff = {
-        changeType: 'culinary',
-        explanation:
-          'Saya mengganti menu kuliner utama ke pilihan jajanan tradisional legendaris dengan harga lebih terjangkau.',
-        beforeItem: {
-          title: 'Nasi Krawu Daging Suwir Komplit',
-          cost: 35000,
-          description: 'Kuliner tradisional komplit dengan jeroan dan serundeng 3 warna.',
-        },
-        afterItem: {
-          title: 'Pudak Daun Pinang & Jajanan Khas',
-          cost: 25000,
-          description: 'Kue khas Gresik bungkus ope pinang asli turun temurun.',
-        },
-        budgetBefore: currentTotal,
-        budgetAfter: currentTotal - 10000,
-        remainingBudget: 35000,
-      };
-    } else if (type === 'budget') {
-      diff = {
-        changeType: 'budget',
-        explanation:
-          'Saya memangkas aktivitas berbayar dan memilih destinasi cagar budaya gratis di pusat kota agar hemat anggaran.',
-        beforeItem: {
-          title: 'Wisata Alam Gosari (WAGOS)',
-          cost: 15000,
-          description: 'Ekowisata perbukitan kapur dan taman celosia.',
-        },
-        afterItem: {
-          title: 'Kampung Kemasan Heritage (Bebas Tiket)',
-          cost: 0,
-          description: 'Wisata sejarah arsitektur rumah merah saudagar masa lampau.',
-        },
-        budgetBefore: currentTotal,
-        budgetAfter: currentTotal - 25000,
-        remainingBudget: 50000,
-      };
-    } else {
-      diff = {
-        changeType: 'style',
-        explanation:
-          'Saya mengurangi jumlah titik kunjungan agar durasi di setiap destinasi lebih leluasa dan santai.',
-        beforeItem: {
-          title: 'Jadwal 3 Destinasi Padat',
-          cost: currentTotal,
-          description: 'Waktu istirahat terbatas di sela perjalanan.',
-        },
-        afterItem: {
-          title: 'Jadwal 2 Destinasi Santai + Kopi Giras',
-          cost: currentTotal - 15000,
-          description: 'Durasi kunjungan lebih panjang dengan waktu santai ngopi kothok.',
-        },
-        budgetBefore: currentTotal,
-        budgetAfter: currentTotal - 15000,
-        remainingBudget: 40000,
-      };
-    }
+  const handleActionCard = (type: 'reduce_budget' | 'change_culinary' | 'make_relaxed' | 'custom', targetId?: string) => {
+    if (!activeItinerary) return;
+    
+    // Panggil fungsi replanning engine
+    const { diff } = handleReplan(activeItinerary, type, targetId);
 
     setReplanningDiff(diff);
     router.push('/plan/replan-result');
   };
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
+  const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customText.trim()) return;
-    handleActionCard('culinary');
+    if (!customText.trim() || isLoading || !activeItinerary) return;
+
+    setIsLoading(true);
+    try {
+      // Panggil AI untuk extract intent
+      const res = await fetch('/api/ai/replan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: customText,
+          currentItinerarySummary: `Budget: ${activeItinerary.budget.total}. Destinasi: ${activeItinerary.selectedDestinations.map(d => d.name).join(', ')}`
+        })
+      });
+      const data = await res.json();
+      
+      const action = data.replanAction || 'custom';
+      handleActionCard(action, data.targetCulinaryId || data.targetDestinationId);
+    } catch (err) {
+      console.error(err);
+      handleActionCard('custom'); // Fallback
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -117,7 +81,7 @@ export default function ReplanPage() {
         {/* 1. Kurangi Budget */}
         <button
           type="button"
-          onClick={() => handleActionCard('budget')}
+          onClick={() => handleActionCard('reduce_budget')}
           className="bg-surface p-6 rounded-[24px] border border-border shadow-xs hover:border-primary hover:shadow-sm transition-all text-left group"
         >
           <div className="w-12 h-12 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center mb-4 group-hover:scale-105 transition-transform shadow-xs">
@@ -134,7 +98,7 @@ export default function ReplanPage() {
         {/* 2. Ganti Kuliner */}
         <button
           type="button"
-          onClick={() => handleActionCard('culinary')}
+          onClick={() => handleActionCard('change_culinary')}
           className="bg-surface p-6 rounded-[24px] border border-border shadow-xs hover:border-primary hover:shadow-sm transition-all text-left group"
         >
           <div className="w-12 h-12 rounded-2xl bg-tertiary-container text-on-tertiary-container flex items-center justify-center mb-4 group-hover:scale-105 transition-transform shadow-xs">
@@ -151,7 +115,7 @@ export default function ReplanPage() {
         {/* 3. Buat Lebih Santai */}
         <button
           type="button"
-          onClick={() => handleActionCard('style')}
+          onClick={() => handleActionCard('make_relaxed')}
           className="bg-surface p-6 rounded-[24px] border border-border shadow-xs hover:border-primary hover:shadow-sm transition-all text-left group"
         >
           <div className="w-12 h-12 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center mb-4 group-hover:scale-105 transition-transform shadow-xs">
@@ -196,14 +160,16 @@ export default function ReplanPage() {
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             placeholder="Misal: Saya ingin lebih banyak waktu untuk beli oleh-oleh..."
-            className="flex-1 px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-body-md text-on-surface"
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-body-md text-on-surface disabled:opacity-50"
           />
           <button
             type="submit"
-            className="px-6 py-3 bg-primary text-on-primary font-button-text font-bold text-sm rounded-xl transition-all shadow-xs hover:bg-[#5e4700] flex items-center gap-1.5 active:scale-95 shrink-0"
+            disabled={isLoading}
+            className="px-6 py-3 bg-primary text-on-primary font-button-text font-bold text-sm rounded-xl transition-all shadow-xs hover:bg-[#5e4700] flex items-center gap-1.5 active:scale-95 shrink-0 disabled:opacity-50"
           >
-            <span>Kirim</span>
-            <span className="material-symbols-outlined text-[18px]">send</span>
+            <span>{isLoading ? 'Memproses...' : 'Kirim'}</span>
+            {!isLoading && <span className="material-symbols-outlined text-[18px]">send</span>}
           </button>
         </form>
       </div>

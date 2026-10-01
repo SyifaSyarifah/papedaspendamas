@@ -57,10 +57,11 @@ export function TripPlannerProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     const scored = rankDestinations(preferences);
     setRecommendedDestinations(scored);
-    if (selectedDestinations.length === 0) {
-      // Default pick top 3
-      setSelectedDestinations(scored.slice(0, 3));
-    }
+    
+    // Setiap kali preferensi berubah (termasuk dari AI Chat), 
+    // reset pilihan destinasi agar mengambil top 3 dari rekomendasi yang baru,
+    // jangan biarkan sisa pilihan dari preferensi lama (default) tertinggal.
+    setSelectedDestinations(scored.slice(0, 3));
   }, [preferences]);
 
   // Load saved trips from localStorage if available
@@ -112,10 +113,28 @@ export function TripPlannerProvider({ children }: { children: React.ReactNode })
   };
 
   const buildItineraryFromCurrentSelection = (): Itinerary => {
+    let list = selectedDestinations.length > 0 ? selectedDestinations : recommendedDestinations.slice(0, 3);
+    
+    // Cek apakah ada spot kuliner yang terpilih/direkomendasikan
+    const culinaryIndex = list.findIndex((d) => d.category === 'kuliner');
+    let chosenCulinary = GRESIK_CULINARY[0]; // fallback
+
+    if (culinaryIndex !== -1) {
+      const match = GRESIK_CULINARY.find((c) => c.id === list[culinaryIndex].id);
+      if (match) {
+        chosenCulinary = match;
+        // Hapus dari list destinasi agar tidak dobel (karena sudah masuk slot makan siang/kuliner khusus)
+        // Namun jika ini satu-satunya destinasi, biarkan saja agar jadwal tidak kosong
+        if (list.length > 1) {
+          list = list.filter((_, idx) => idx !== culinaryIndex);
+        }
+      }
+    }
+
     const itinerary = generateItinerary(
       preferences,
-      selectedDestinations.length > 0 ? selectedDestinations : recommendedDestinations.slice(0, 3),
-      [GRESIK_CULINARY[0]]
+      list,
+      [chosenCulinary]
     );
     setActiveItinerary(itinerary);
     return itinerary;
@@ -156,34 +175,9 @@ export function TripPlannerProvider({ children }: { children: React.ReactNode })
   const applyReplanning = () => {
     if (!replanningDiff || !activeItinerary) return;
 
-    if (replanningDiff.changeType === 'culinary') {
-      const newCulinary = GRESIK_CULINARY[1] || GRESIK_CULINARY[0];
-      const updated = generateItinerary(
-        preferences,
-        activeItinerary.selectedDestinations,
-        [newCulinary]
-      );
-      setActiveItinerary(updated);
-    } else if (replanningDiff.changeType === 'budget') {
-      const updatedPrefs = { ...preferences, budget: 100000 };
-      setPreferences(updatedPrefs);
-      const updated = generateItinerary(
-        updatedPrefs,
-        activeItinerary.selectedDestinations.slice(0, 2),
-        [GRESIK_CULINARY[0]]
-      );
-      setActiveItinerary(updated);
-    } else if (replanningDiff.changeType === 'style') {
-      const updatedPrefs = { ...preferences, travelStyle: 'santai' as const };
-      setPreferences(updatedPrefs);
-      const updated = generateItinerary(
-        updatedPrefs,
-        activeItinerary.selectedDestinations.slice(0, 2),
-        [GRESIK_CULINARY[3] || GRESIK_CULINARY[0]]
-      );
-      setActiveItinerary(updated);
+    if (replanningDiff.updatedItinerary) {
+      setActiveItinerary(replanningDiff.updatedItinerary);
     }
-
     setReplanningDiff(null);
   };
 

@@ -58,4 +58,5 @@ export interface ReplanningDiff {
   budgetBefore: number;
   budgetAfter: number;
   remainingBudget: number;
+  updatedItinerary?: Itinerary;
 }
