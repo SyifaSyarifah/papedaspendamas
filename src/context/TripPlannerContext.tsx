@@ -13,7 +13,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   startLocation: 'Surabaya',
   budget: 150000,
   duration: '1_day',
-  interests: ['sejarah', 'kuliner'],
+  interests: [],
   transport: 'motor',
   travelStyle: 'santai',
   groupSize: 1,
@@ -59,9 +59,10 @@ export function TripPlannerProvider({ children }: { children: React.ReactNode })
     setRecommendedDestinations(scored);
     
     // Setiap kali preferensi berubah (termasuk dari AI Chat), 
-    // reset pilihan destinasi agar mengambil top 3 dari rekomendasi yang baru,
-    // jangan biarkan sisa pilihan dari preferensi lama (default) tertinggal.
+    // reset pilihan destinasi agar mengambil top 3 dari rekomendasi yang baru
     setSelectedDestinations(scored.slice(0, 3));
+    // Reset activeItinerary agar itinerary lama tidak mengunci jadwal baru
+    setActiveItinerary(null);
   }, [preferences]);
 
   // Load saved trips from localStorage if available
@@ -113,29 +114,8 @@ export function TripPlannerProvider({ children }: { children: React.ReactNode })
   };
 
   const buildItineraryFromCurrentSelection = (): Itinerary => {
-    let list = selectedDestinations.length > 0 ? selectedDestinations : recommendedDestinations.slice(0, 3);
-    
-    // Cek apakah ada spot kuliner yang terpilih/direkomendasikan
-    const culinaryIndex = list.findIndex((d) => d.category === 'kuliner');
-    let chosenCulinary = GRESIK_CULINARY[0]; // fallback
-
-    if (culinaryIndex !== -1) {
-      const match = GRESIK_CULINARY.find((c) => c.id === list[culinaryIndex].id);
-      if (match) {
-        chosenCulinary = match;
-        // Hapus dari list destinasi agar tidak dobel (karena sudah masuk slot makan siang/kuliner khusus)
-        // Namun jika ini satu-satunya destinasi, biarkan saja agar jadwal tidak kosong
-        if (list.length > 1) {
-          list = list.filter((_, idx) => idx !== culinaryIndex);
-        }
-      }
-    }
-
-    const itinerary = generateItinerary(
-      preferences,
-      list,
-      [chosenCulinary]
-    );
+    const list = selectedDestinations.length > 0 ? selectedDestinations : recommendedDestinations.slice(0, 3);
+    const itinerary = generateItinerary(preferences, list);
     setActiveItinerary(itinerary);
     return itinerary;
   };

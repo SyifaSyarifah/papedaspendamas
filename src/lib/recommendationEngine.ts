@@ -42,12 +42,20 @@ export function rankDestinations(
 
   // Filter ketat berdasarkan minat (interests) agar tidak campur
   let validDestinations = allDestinations;
-  if (interests.length > 0) {
-    validDestinations = allDestinations.filter(dest => 
-      interests.includes(dest.category) ||
-      (interests.includes('sejarah') && dest.category === 'religi') ||
-      (interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi'))
-    );
+  if (interests && interests.length > 0) {
+    const isCulinaryOnly = interests.length === 1 && interests[0] === 'kuliner';
+
+    if (isCulinaryOnly) {
+      // Jika user minta khusus kuliner, WAJIB tampilkan HANYA kuliner Gresik
+      validDestinations = allDestinations.filter((dest) => dest.category === 'kuliner');
+    } else {
+      validDestinations = allDestinations.filter((dest) => {
+        if (interests.includes(dest.category)) return true;
+        if (interests.includes('sejarah') && dest.category === 'religi') return true;
+        if (interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi')) return true;
+        return false;
+      });
+    }
     // Fallback jika kosong
     if (validDestinations.length === 0) validDestinations = allDestinations;
   }
@@ -56,10 +64,10 @@ export function rankDestinations(
     let interestScore = 0;
     const reasons: string[] = [];
 
-    // 1. Interest Match (30% weight -> max 30 pts)
+    // 1. Interest Match (35% weight -> max 35 pts)
     const isDirectInterest = interests.includes(dest.category);
     if (isDirectInterest) {
-      interestScore = 30;
+      interestScore = 35;
       reasons.push(`Sesuai minat ${dest.categoryLabel.toLowerCase()}`);
     } else if (interests.includes('sejarah') && dest.category === 'religi') {
       interestScore = 24;
@@ -68,7 +76,7 @@ export function rankDestinations(
       interestScore = 22;
       reasons.push('Ramah untuk kunjungan santai keluarga');
     } else {
-      interestScore = 12;
+      interestScore = 10;
     }
 
     // 2. Budget Score (25% weight -> max 25 pts)

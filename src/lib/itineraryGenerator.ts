@@ -24,17 +24,25 @@ function getTravelMinutes(distKm: number, transport: string): number {
 export function generateItinerary(
   preferences: UserPreferences,
   destinations: Destination[],
-  culinaryList: CulinarySpot[] = [GRESIK_CULINARY[0]]
+  culinaryList?: CulinarySpot[]
 ): Itinerary {
-  const chosenDestinations = destinations.slice(0, preferences.duration === 'half_day' ? 2 : 3);
-  const chosenCulinary = culinaryList.length > 0 ? culinaryList[0] : GRESIK_CULINARY[0];
+  // Gunakan list item yang dipilih secara dinamis (maks 2 untuk half_day, maks 3-4 untuk 1_day)
+  const maxItems = preferences.duration === 'half_day' ? 2 : 3;
+  const chosenItems = destinations.slice(0, Math.max(1, Math.min(destinations.length, maxItems)));
 
   const transportBaseCost =
     preferences.transport === 'motor' ? 25000 : preferences.transport === 'mobil' ? 60000 : 20000;
 
-  const ticketsCost = chosenDestinations.reduce((sum, d) => sum + d.price, 0);
-  const culinaryCost = chosenCulinary.priceMin || 25000;
-  const activityCost = 15000; // parking, infaq, local guide/tips
+  // Pisahkan destinasi umum dan kuliner
+  const nonCulinaryItems = chosenItems.filter((d) => d.category !== 'kuliner');
+  const culinaryItems = chosenItems.filter((d) => d.category === 'kuliner');
+
+  const ticketsCost = nonCulinaryItems.reduce((sum, d) => sum + d.price, 0);
+  const culinaryCost = culinaryItems.length > 0
+    ? culinaryItems.reduce((sum, c) => sum + (c.price || 25000), 0)
+    : (culinaryList && culinaryList.length > 0 ? culinaryList[0].priceMin : 25000);
+
+  const activityCost = 15000; // parkir, infaq, tip
   const totalCost = transportBaseCost + ticketsCost + culinaryCost + activityCost;
 
   const budgetBreakdown: BudgetBreakdown = {
@@ -49,137 +57,96 @@ export function generateItinerary(
 
   const timeline: TimelineSlot[] = [];
 
-  // Koordinat titik awal (Surabaya default atau Alun-alun Gresik)
+  // Koordinat titik awal
   const startCoord = {
     lat: preferences.startLocation?.toLowerCase().includes('gresik') ? -7.1558 : -7.2575,
     lng: preferences.startLocation?.toLowerCase().includes('gresik') ? 112.6552 : 112.7521,
   };
 
-  const d0 = chosenDestinations[0];
-  const leg0Km = d0
-    ? getRoadDistanceKm(startCoord.lat, startCoord.lng, d0.latitude, d0.longitude)
-    : 15.0;
-  const leg0Min = getTravelMinutes(leg0Km, preferences.transport);
+  let currentLat = startCoord.lat;
+  let currentLng = startCoord.lng;
+  let runningDistance = 0;
 
-  // Slot 1: Departure
+  // Waktu awal (jam keberangkatan)
+  let currentHour = 8;
+  let currentMinute = 30;
+
+  const formatTime = (h: number, m: number) => {
+    const hh = String(Math.floor(h) % 24).padStart(2, '0');
+    const mm = String(Math.floor(m) % 60).padStart(2, '0');
+    return `${hh}:${mm}`;
+  };
+
+  const addMinutes = (m: number) => {
+    currentMinute += m;
+    while (currentMinute >= 60) {
+      currentMinute -= 60;
+      currentHour += 1;
+    }
+  };
+
+  // 1. Slot Keberangkatan
+  const firstItem = chosenItems[0];
+  const firstLegKm = firstItem
+    ? getRoadDistanceKm(currentLat, currentLng, firstItem.latitude, firstItem.longitude)
+    : 15.0;
+  const firstLegMin = getTravelMinutes(firstLegKm, preferences.transport);
+  runningDistance += firstLegKm;
+
   timeline.push({
     id: 'slot-departure',
-    time: '08:30',
+    time: formatTime(currentHour, currentMinute),
     type: 'departure',
     title: `Berangkat dari ${preferences.startLocation || 'Surabaya'}`,
     categoryLabel: 'Titik Keberangkatan',
     durationMinutes: 45,
     cost: transportBaseCost / 2,
-    costLabel: `Rp${Math.round(transportBaseCost / 2).toLocaleString('id-ID')} (Bahan Bakar/Tiket)`,
+    costLabel: `Rp${Math.round(transportBaseCost / 2).toLocaleString('id-ID')} (Bahan Bakar)`,
     description: `Memulai perjalanan menuju Gresik via rute optimal dengan ${preferences.transport}.`,
     locationName: preferences.startLocation || 'Surabaya',
-    travelTimeToNextMinutes: leg0Min,
-    distanceToNextKm: leg0Km,
+    travelTimeToNextMinutes: firstLegMin,
+    distanceToNextKm: firstLegKm,
   });
 
-  let runningDistance = leg0Km;
+  addMinutes(45 + firstLegMin);
 
-  // Slot 2: First Destination
-  if (d0) {
-    const legToCulinaryKm = getRoadDistanceKm(d0.latitude, d0.longitude, chosenCulinary.latitude, chosenCulinary.longitude);
-    const legToCulinaryMin = getTravelMinutes(legToCulinaryKm, preferences.transport);
-    runningDistance += legToCulinaryKm;
+  // 2. Dynamic Slots untuk setiap destinasi/kuliner yang benar-benar dipilih
+  chosenItems.forEach((item, index) => {
+    const isCulinary = item.category === 'kuliner';
+    const isLast = index === chosenItems.length - 1;
+    const duration = item.recommendedDurationMinutes || (isCulinary ? 60 : 75);
+
+    // Hitung jarak ke item berikutnya atau ke titik pulang jika terakhir
+    const nextItem = !isLast ? chosenItems[index + 1] : null;
+    const nextLegKm = nextItem
+      ? getRoadDistanceKm(item.latitude, item.longitude, nextItem.latitude, nextItem.longitude)
+      : getRoadDistanceKm(item.latitude, item.longitude, startCoord.lat, startCoord.lng);
+    const nextLegMin = getTravelMinutes(nextLegKm, preferences.transport);
+    runningDistance += nextLegKm;
 
     timeline.push({
-      id: `slot-dest-0`,
-      time: '09:30',
-      type: 'destination',
-      title: d0.name,
-      categoryLabel: d0.categoryLabel,
-      durationMinutes: d0.recommendedDurationMinutes,
-      cost: d0.price,
-      costLabel: d0.price === 0 ? 'Gratis' : d0.priceLabel,
-      description: d0.shortDescription,
-      locationName: d0.name,
-      travelTimeToNextMinutes: legToCulinaryMin,
-      distanceToNextKm: legToCulinaryKm,
-      destinationData: d0,
+      id: `slot-item-${item.id}`,
+      time: formatTime(currentHour, currentMinute),
+      type: isCulinary ? 'culinary' : 'destination',
+      title: item.name,
+      categoryLabel: item.categoryLabel,
+      durationMinutes: duration,
+      cost: item.price,
+      costLabel: item.price === 0 ? 'Gratis' : item.priceLabel,
+      description: item.shortDescription || item.description.slice(0, 100),
+      locationName: item.name,
+      travelTimeToNextMinutes: nextLegMin,
+      distanceToNextKm: nextLegKm,
+      destinationData: item,
     });
-  }
 
-  // Slot 3: Lunch / Local Culinary
-  const d1 = chosenDestinations[1];
-  const legFromCulinaryKm = d1
-    ? getRoadDistanceKm(chosenCulinary.latitude, chosenCulinary.longitude, d1.latitude, d1.longitude)
-    : 3.5;
-  const legFromCulinaryMin = getTravelMinutes(legFromCulinaryKm, preferences.transport);
-  runningDistance += legFromCulinaryKm;
-
-  timeline.push({
-    id: 'slot-culinary',
-    time: '12:00',
-    type: 'culinary',
-    title: chosenCulinary.name,
-    categoryLabel: chosenCulinary.categoryLabel,
-    durationMinutes: 60,
-    cost: culinaryCost,
-    costLabel: `± Rp${culinaryCost.toLocaleString('id-ID')}`,
-    description: `${chosenCulinary.description.slice(0, 90)}... Populer: ${chosenCulinary.popularMenu.join(', ')}`,
-    locationName: chosenCulinary.name,
-    travelTimeToNextMinutes: legFromCulinaryMin,
-    distanceToNextKm: legFromCulinaryKm,
-    culinaryData: chosenCulinary,
+    addMinutes(duration + nextLegMin);
   });
 
-  // Slot 4: Second Destination
-  if (d1) {
-    const d2 = chosenDestinations[2];
-    const legToD2Km = d2
-      ? getRoadDistanceKm(d1.latitude, d1.longitude, d2.latitude, d2.longitude)
-      : getRoadDistanceKm(d1.latitude, d1.longitude, startCoord.lat, startCoord.lng);
-    const legToD2Min = getTravelMinutes(legToD2Km, preferences.transport);
-    runningDistance += legToD2Km;
-
-    timeline.push({
-      id: `slot-dest-1`,
-      time: '13:30',
-      type: 'destination',
-      title: d1.name,
-      categoryLabel: d1.categoryLabel,
-      durationMinutes: d1.recommendedDurationMinutes,
-      cost: d1.price,
-      costLabel: d1.price === 0 ? 'Gratis' : d1.priceLabel,
-      description: d1.shortDescription,
-      locationName: d1.name,
-      travelTimeToNextMinutes: legToD2Min,
-      distanceToNextKm: legToD2Km,
-      destinationData: d1,
-    });
-  }
-
-  // Slot 5: Third Destination (jika 1 hari penuh & ada 3 destinasi)
-  if (chosenDestinations[2]) {
-    const d2 = chosenDestinations[2];
-    const returnLegKm = getRoadDistanceKm(d2.latitude, d2.longitude, startCoord.lat, startCoord.lng);
-    const returnLegMin = getTravelMinutes(returnLegKm, preferences.transport);
-    runningDistance += returnLegKm;
-
-    timeline.push({
-      id: `slot-dest-2`,
-      time: '15:30',
-      type: 'destination',
-      title: d2.name,
-      categoryLabel: d2.categoryLabel,
-      durationMinutes: d2.recommendedDurationMinutes,
-      cost: d2.price,
-      costLabel: d2.price === 0 ? 'Gratis' : d2.priceLabel,
-      description: d2.shortDescription,
-      locationName: d2.name,
-      travelTimeToNextMinutes: returnLegMin,
-      distanceToNextKm: returnLegKm,
-      destinationData: d2,
-    });
-  }
-
-  // Slot 6: Return
+  // 3. Slot Perjalanan Pulang
   timeline.push({
     id: 'slot-return',
-    time: preferences.duration === 'half_day' ? '14:30' : '17:30',
+    time: formatTime(currentHour, currentMinute),
     type: 'return',
     title: `Perjalanan Pulang ke ${preferences.startLocation || 'Surabaya'}`,
     categoryLabel: 'Selesai Trip',
@@ -197,14 +164,45 @@ export function generateItinerary(
       ? '1 Hari'
       : '2 Hari';
 
+  let subtitle = '';
+  if (nonCulinaryItems.length > 0 && culinaryItems.length > 0) {
+    subtitle = `${nonCulinaryItems.length} Destinasi Wisata + ${culinaryItems.length} Spot Kuliner`;
+  } else if (culinaryItems.length > 0) {
+    subtitle = `${culinaryItems.length} Spot Kuliner Pilihan Gresik`;
+  } else {
+    subtitle = `${nonCulinaryItems.length} Destinasi Wisata Pilihan`;
+  }
+
+  // Siapkan culinary data untuk peta
+  const selectedCulinaryList: CulinarySpot[] = culinaryItems.length > 0
+    ? culinaryItems.map((c) => ({
+        id: c.id,
+        name: c.name,
+        category: c.category,
+        categoryLabel: c.categoryLabel,
+        description: c.description,
+        priceMin: c.price,
+        priceMax: c.price * 1.5,
+        priceLabel: c.priceLabel,
+        rating: c.rating,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        openingHours: c.openingHours,
+        address: c.address,
+        image: c.image,
+        popularMenu: c.highlights || [],
+        recommendedReason: c.shortDescription,
+      }))
+    : (culinaryList && culinaryList.length > 0 ? culinaryList : [GRESIK_CULINARY[0]]);
+
   return {
     id: `trip-${Date.now()}`,
     title: `Jelajah Gresik ${durationLabel}`,
-    subtitle: `${chosenDestinations.length} Destinasi Wisata + ${chosenCulinary.name}`,
+    subtitle,
     createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
     preferences,
-    selectedDestinations: chosenDestinations,
-    selectedCulinary: [chosenCulinary],
+    selectedDestinations: nonCulinaryItems.length > 0 ? nonCulinaryItems : chosenItems,
+    selectedCulinary: selectedCulinaryList,
     timeline,
     budget: budgetBreakdown,
     totalDistanceKm: Number(runningDistance.toFixed(1)),

@@ -12,6 +12,14 @@ interface FoodCardProps {
 }
 
 export function FoodCard({ food, isSelected = false, onToggleSelect }: FoodCardProps) {
+  const [imgSrc, setImgSrc] = React.useState(food.image);
+
+  React.useEffect(() => {
+    setImgSrc(food.image);
+  }, [food.image]);
+
+  const fallbackFood = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80';
+
   return (
     <div
       className={`group flex flex-col bg-surface rounded-[20px] shadow-[0_10px_30px_rgba(37,37,37,0.05)] border transition-all duration-300 overflow-hidden hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(37,37,37,0.08)] ${
@@ -20,9 +28,11 @@ export function FoodCard({ food, isSelected = false, onToggleSelect }: FoodCardP
     >
       <div className="relative w-full aspect-video bg-surface-container-high overflow-hidden">
         <Image
-          src={food.image}
+          src={imgSrc || fallbackFood}
           alt={food.name}
           fill
+          unoptimized
+          onError={() => setImgSrc(fallbackFood)}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-700"
         />

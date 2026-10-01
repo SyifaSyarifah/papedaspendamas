@@ -19,9 +19,24 @@ export default function RecommendationPage() {
     setIsGenerating,
   } = useTripPlanner();
 
+  const initialFilter =
+    preferences.interests.length === 1 &&
+    ['sejarah', 'kuliner', 'alam', 'religi'].includes(preferences.interests[0])
+      ? preferences.interests[0]
+      : 'all';
+
   const [loadingComplete, setLoadingComplete] = useState(!isGenerating);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<string>(initialFilter);
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (
+      preferences.interests.length === 1 &&
+      ['sejarah', 'kuliner', 'alam', 'religi'].includes(preferences.interests[0])
+    ) {
+      setActiveFilter(preferences.interests[0]);
+    }
+  }, [preferences.interests]);
 
   const filterTabs = [
     { id: 'all', label: 'Semua Cocok' },

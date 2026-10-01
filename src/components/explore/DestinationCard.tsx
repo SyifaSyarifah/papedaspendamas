@@ -19,6 +19,18 @@ export function DestinationCard({
   onToggleSelect,
 }: DestinationCardProps) {
   const matchPercent = destination.matchScore || 90;
+  const [imgSrc, setImgSrc] = React.useState(destination.image);
+
+  React.useEffect(() => {
+    setImgSrc(destination.image);
+  }, [destination.image]);
+
+  const fallbackImage =
+    destination.category === 'kuliner'
+      ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+      : destination.category === 'alam'
+      ? 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'
+      : 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=800&q=80';
 
   return (
     <div
@@ -29,9 +41,11 @@ export function DestinationCard({
       {/* Image Banner */}
       <div className="relative w-full aspect-video bg-surface-container-high overflow-hidden">
         <Image
-          src={destination.image}
+          src={imgSrc || fallbackImage}
           alt={destination.name}
           fill
+          unoptimized
+          onError={() => setImgSrc(fallbackImage)}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-700"
         />

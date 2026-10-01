@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTripPlanner } from '../../context/TripPlannerContext';
 import { ChatMessage, UserPreferences } from '../../types/planner';
 
@@ -37,6 +37,8 @@ const LOADING_STAGES = [
 
 export function AIChatInterface() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const autoTriggeredRef = useRef(false);
   const { preferences, updatePreferences } = useTripPlanner();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -222,6 +224,19 @@ export function AIChatInterface() {
       );
     }
   };
+
+  // Revisi 5: Auto-trigger pesan jika pengguna mengetik rencana dari beranda (?q=...)
+  useEffect(() => {
+    const rawQuery = searchParams.get('q');
+    if (rawQuery && rawQuery.trim() && !autoTriggeredRef.current) {
+      autoTriggeredRef.current = true;
+      // Bersihkan tanda kutip pembungkus jika ada
+      const cleanQuery = rawQuery.trim().replace(/^["']|["']$/g, '');
+      if (cleanQuery) {
+        handleSend(cleanQuery);
+      }
+    }
+  }, [searchParams]);
 
   const handleQuickChoiceClick = (choice: string) => {
     if (choice.includes('Rekomendasi') || choice.includes('Lihat Rekomendasi')) {
