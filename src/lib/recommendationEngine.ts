@@ -1,6 +1,33 @@
 import { Destination, DestinationCategory } from '../types/destination';
 import { UserPreferences } from '../types/planner';
 import { GRESIK_DESTINATIONS } from '../data/gresikDestinations';
+import { GRESIK_CULINARY } from '../data/gresikCulinary';
+
+// Map CulinarySpot to Destination so they can be recommended and selected
+const mappedCulinary: Destination[] = GRESIK_CULINARY.map((c) => ({
+  id: c.id,
+  name: c.name,
+  category: 'kuliner', // Map all to 'kuliner' so it matches the filter tab and AI extraction
+  categoryLabel: c.categoryLabel,
+  description: c.description,
+  shortDescription: c.recommendedReason || c.description.slice(0, 60),
+  price: c.priceMin,
+  priceLabel: c.priceLabel,
+  rating: c.rating,
+  reviewCount: 300,
+  latitude: c.latitude,
+  longitude: c.longitude,
+  distanceKm: 2.5, // Default assumption
+  openingHours: c.openingHours,
+  recommendedDurationMinutes: 60,
+  address: c.address,
+  image: c.image,
+  facilities: ['Tempat Makan', 'Area Parkir'],
+  highlights: c.popularMenu,
+  bestTimeToVisit: 'Jam Makan (Siang / Malam)',
+}));
+
+const ALL_COMBINED_DESTINATIONS = [...GRESIK_DESTINATIONS, ...mappedCulinary];
 
 export interface ScoredDestination extends Destination {
   matchScore: number;
@@ -9,11 +36,23 @@ export interface ScoredDestination extends Destination {
 
 export function rankDestinations(
   preferences: UserPreferences,
-  allDestinations: Destination[] = GRESIK_DESTINATIONS
+  allDestinations: Destination[] = ALL_COMBINED_DESTINATIONS
 ): ScoredDestination[] {
   const { budget, interests, duration, transport, travelStyle } = preferences;
 
-  const scored = allDestinations.map((dest) => {
+  // Filter ketat berdasarkan minat (interests) agar tidak campur
+  let validDestinations = allDestinations;
+  if (interests.length > 0) {
+    validDestinations = allDestinations.filter(dest => 
+      interests.includes(dest.category) ||
+      (interests.includes('sejarah') && dest.category === 'religi') ||
+      (interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi'))
+    );
+    // Fallback jika kosong
+    if (validDestinations.length === 0) validDestinations = allDestinations;
+  }
+
+  const scored = validDestinations.map((dest) => {
     let interestScore = 0;
     const reasons: string[] = [];
 

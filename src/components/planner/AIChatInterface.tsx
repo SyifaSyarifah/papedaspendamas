@@ -183,9 +183,10 @@ export function AIChatInterface() {
         if (prefs.travelStyle != null) partialUpdate.travelStyle = prefs.travelStyle;
         if (prefs.startLocation != null) partialUpdate.startLocation = prefs.startLocation;
         if (Array.isArray(prefs.interests) && prefs.interests.length > 0) {
-          // Merge interests (tidak hapus yang sudah ada)
-          const merged = [...new Set([...preferences.interests, ...prefs.interests])];
-          partialUpdate.interests = merged as UserPreferences['interests'];
+          // Ganti interests sepenuhnya dengan hasil ekstraksi AI.
+          // AI sudah menerima 'currentPreferences' di konteks, jadi AI yang menentukan 
+          // apakah minat sebelumnya dipertahankan atau diganti berdasarkan konteks obrolan.
+          partialUpdate.interests = prefs.interests as UserPreferences['interests'];
         }
 
         if (Object.keys(partialUpdate).length > 0) {
