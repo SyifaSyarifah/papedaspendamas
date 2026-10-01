@@ -177,6 +177,11 @@ export function TripPlannerProvider({ children }: { children: React.ReactNode })
 
     if (replanningDiff.updatedItinerary) {
       setActiveItinerary(replanningDiff.updatedItinerary);
+      // Jika ini adalah trip yang sudah tersimpan sebelumnya, otomatis update penyimpanannya
+      const exists = savedTrips.some((t) => t.id === activeItinerary.id);
+      if (exists) {
+        saveTrip(replanningDiff.updatedItinerary);
+      }
     }
     setReplanningDiff(null);
   };

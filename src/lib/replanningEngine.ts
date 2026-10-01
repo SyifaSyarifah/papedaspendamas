@@ -143,6 +143,7 @@ export function handleReplan(
     budgetBefore: currentItinerary.budget.total,
     budgetAfter: updatedItinerary.budget.total,
     remainingBudget: updatedItinerary.budget.remaining,
+    updatedItinerary,
   };
 
   return { updatedItinerary, diff };
