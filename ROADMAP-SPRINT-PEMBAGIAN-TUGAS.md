@@ -271,9 +271,9 @@ Silakan centang dan cantumkan nama anggota tim yang bertugas:
 [x] 2.4 Mekanisme AI Fallback jika LLM Offline                   --> PIC: [ Neo ]
 
 === SPRINT 3: DATA & REAL ROUTING (OSRM) ===
-[ ] 3.1 Verifikasi Data Koordinat & Jam Buka Destinasi Gresik     --> PIC: [ ____________ ]
-[ ] 3.2 Implementasi OSRM Routing & Polyline Jalan di Leaflet    --> PIC: [ ____________ ]
-[ ] 3.3 Dynamic AI Explanation di Kartu Rekomendasi              --> PIC: [ ____________ ]
+[x] 3.1 Verifikasi Data Koordinat & Jam Buka Destinasi Gresik     --> PIC: [ Syifa ]
+[x] 3.2 Implementasi OSRM Routing & Polyline Jalan di Leaflet    --> PIC: [ Syifa ]
+[x] 3.3 Dynamic AI Explanation di Kartu Rekomendasi              --> PIC: [ Syifa ]
 
 === SPRINT 4: REPLANNING & PERSISTENCE ===
 [ ] 4.1 Buat Logika Parsial Replanning (Kurangi Budget / Ganti)  --> PIC: [ ____________ ]

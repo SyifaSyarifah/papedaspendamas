@@ -10,6 +10,8 @@ export default function MapPage() {
   const { activeItinerary, buildItineraryFromCurrentSelection } = useTripPlanner();
   const itinerary = activeItinerary || buildItineraryFromCurrentSelection();
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [realDistanceKm, setRealDistanceKm] = useState<number>(itinerary.totalDistanceKm || 28.5);
+  const [realMinutes, setRealMinutes] = useState<number>(50);
 
   // Generate Google Maps Directions link for all waypoints in the trip
   const handleOpenAllInGoogleMaps = () => {
@@ -40,11 +42,11 @@ export default function MapPage() {
 
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 font-label-sm text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-primary-soft text-on-primary-container border border-primary/20">
-                <span className="material-symbols-outlined text-[14px] text-primary">map</span>
-                Google Maps API
+                <span className="material-symbols-outlined text-[14px] text-primary">alt_route</span>
+                OSRM Routing
               </span>
               <span className="font-label-sm text-xs font-bold px-3 py-0.5 rounded-full bg-primary-container text-on-primary-container">
-                {itinerary.totalDistanceKm || 28.5} km
+                {realDistanceKm} km
               </span>
             </div>
           </div>
@@ -156,14 +158,18 @@ export default function MapPage() {
           height="100%"
           selectedId={selectedLocationId}
           onMarkerClick={(id) => setSelectedLocationId(id)}
+          onRouteCalculated={(dist, dur) => {
+            if (dist > 0) setRealDistanceKm(dist);
+            if (dur > 0) setRealMinutes(dur);
+          }}
         />
 
         {/* Floating Route Card overlay */}
         <div className="absolute bottom-4 left-4 right-4 lg:bottom-6 lg:left-6 lg:right-6 z-[990] pointer-events-auto">
           <RouteFloatingCard
             destinations={itinerary.selectedDestinations}
-            totalDistanceKm={itinerary.totalDistanceKm}
-            totalMinutes={52}
+            totalDistanceKm={realDistanceKm}
+            totalMinutes={realMinutes}
           />
         </div>
       </div>

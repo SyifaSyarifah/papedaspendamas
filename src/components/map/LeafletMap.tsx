@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Destination, CulinarySpot } from '../../types/destination';
+import { fetchOSRMRoute } from '../../lib/routingService';
 
 interface LeafletMapProps {
   destinations?: Destination[];
@@ -130,15 +131,26 @@ export function LeafletMap({
         marker.bindPopup(popupContent);
       });
 
-      // 3. Draw Polyline Route
+      // 3. Draw Polyline Route via OSRM
       if (latLngs.length > 1) {
-        L.polyline(latLngs, {
-          color: '#E8B845',
-          weight: 4,
-          opacity: 0.85,
-          dashArray: '8, 8',
-          lineJoin: 'round',
-        }).addTo(mapInstance);
+        const waypoints: { latitude: number; longitude: number }[] = [];
+        if (destinations[0]) waypoints.push({ latitude: destinations[0].latitude, longitude: destinations[0].longitude });
+        if (culinary[0]) waypoints.push({ latitude: culinary[0].latitude, longitude: culinary[0].longitude });
+        for (let i = 1; i < destinations.length; i++) {
+          waypoints.push({ latitude: destinations[i].latitude, longitude: destinations[i].longitude });
+        }
+
+        fetchOSRMRoute(waypoints).then((route) => {
+          if (!mapInstance) return;
+          const polyCoords = route.polyline.length > 0 ? route.polyline : latLngs;
+
+          L.polyline(polyCoords, {
+            color: '#E8B845',
+            weight: 5,
+            opacity: 0.9,
+            lineJoin: 'round',
+          }).addTo(mapInstance);
+        });
 
         // Fit map to bounds
         const bounds = L.latLngBounds(latLngs);

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Destination, CulinarySpot } from '../../types/destination';
+import { fetchOSRMRoute } from '../../lib/routingService';
 
 export type MapType = 'roadmap' | 'satellite' | 'terrain';
 
@@ -13,6 +14,7 @@ interface GoogleMapProps {
   height?: string;
   selectedId?: string | null;
   onMarkerClick?: (id: string) => void;
+  onRouteCalculated?: (distanceKm: number, durationMinutes: number) => void;
   initialMapType?: MapType;
 }
 
@@ -24,6 +26,7 @@ export function GoogleMap({
   height = '100%',
   selectedId,
   onMarkerClick,
+  onRouteCalculated,
   initialMapType = 'roadmap',
 }: GoogleMapProps) {
   const [isMounted, setIsMounted] = useState(false);
@@ -31,6 +34,7 @@ export function GoogleMap({
   const mapRef = useRef<any>(null);
   const tileLayerRef = useRef<any>(null);
   const markersRef = useRef<{ [key: string]: any }>({});
+  const routeLayersRef = useRef<any[]>([]);
   const mapContainerId = 'gatra-google-map-container';
 
   useEffect(() => {
@@ -216,24 +220,57 @@ export function GoogleMap({
 
       markersRef.current = newMarkers;
 
-      // 3. Draw Connecting Route Polyline
+      // 3. Draw Connecting Route Polyline via OSRM Real Routing
       if (latLngs.length > 1) {
-        // Shadow line for Google Maps styling
-        L.polyline(latLngs, {
-          color: '#1a73e8',
-          weight: 6,
-          opacity: 0.85,
-          lineJoin: 'round',
-        }).addTo(map);
+        // Susun urutan waypoint logis perjalanan: Destinasi 1 -> Kuliner -> Destinasi berikutnya
+        const waypoints: { latitude: number; longitude: number }[] = [];
+        if (destinations[0]) {
+          waypoints.push({ latitude: destinations[0].latitude, longitude: destinations[0].longitude });
+        }
+        if (culinary[0]) {
+          waypoints.push({ latitude: culinary[0].latitude, longitude: culinary[0].longitude });
+        }
+        for (let i = 1; i < destinations.length; i++) {
+          waypoints.push({ latitude: destinations[i].latitude, longitude: destinations[i].longitude });
+        }
 
-        // Dashed inner core for direction indicator
-        L.polyline(latLngs, {
-          color: '#ffffff',
-          weight: 2,
-          opacity: 0.9,
-          dashArray: '6, 6',
-          lineJoin: 'round',
-        }).addTo(map);
+        // Ambil rute jalan riil OSRM
+        fetchOSRMRoute(waypoints).then((route) => {
+          if (!mapRef.current) return;
+
+          // Hapus layer polyline lama jika ada
+          routeLayersRef.current.forEach((layer) => {
+            if (mapRef.current.hasLayer(layer)) {
+              mapRef.current.removeLayer(layer);
+            }
+          });
+          routeLayersRef.current = [];
+
+          const polyCoords = route.polyline.length > 0 ? route.polyline : latLngs;
+
+          // Polyline utama mengikuti jalan raya
+          const outerLine = L.polyline(polyCoords, {
+            color: '#1a73e8',
+            weight: 6,
+            opacity: 0.9,
+            lineJoin: 'round',
+          }).addTo(mapRef.current);
+
+          // Garis tengah kontras petunjuk arah
+          const innerLine = L.polyline(polyCoords, {
+            color: '#ffffff',
+            weight: 2,
+            opacity: 0.95,
+            dashArray: '6, 6',
+            lineJoin: 'round',
+          }).addTo(mapRef.current);
+
+          routeLayersRef.current = [outerLine, innerLine];
+
+          if (onRouteCalculated) {
+            onRouteCalculated(route.totalDistanceKm, route.totalDurationMinutes);
+          }
+        });
 
         // Fit map bounds neatly around all points
         const bounds = L.latLngBounds(latLngs);

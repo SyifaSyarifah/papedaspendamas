@@ -21,6 +21,7 @@ export default function RecommendationPage() {
 
   const [loadingComplete, setLoadingComplete] = useState(!isGenerating);
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
 
   const filterTabs = [
     { id: 'all', label: 'Semua Cocok' },
@@ -39,6 +40,37 @@ export default function RecommendationPage() {
       return () => clearTimeout(timer);
     }
   }, [isGenerating, setIsGenerating]);
+
+  // Sprint 3.3: Dynamic AI Explanation Generator via /api/ai/explain
+  useEffect(() => {
+    if (recommendedDestinations.length === 0) return;
+    const topDestinations = recommendedDestinations.slice(0, 3);
+
+    topDestinations.forEach(async (dest) => {
+      try {
+        const res = await fetch('/api/ai/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinationName: dest.name,
+            matchScore: dest.matchScore || 90,
+            reasons: dest.matchReasons || ['interest_match', 'within_budget', 'nearby'],
+            priceLabel: dest.priceLabel,
+            category: dest.categoryLabel,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.explanation) {
+            setAiExplanations((prev) => ({ ...prev, [dest.id]: data.explanation }));
+          }
+        }
+      } catch (e) {
+        // Fallback gracefully handled by card component
+      }
+    });
+  }, [recommendedDestinations]);
 
   const handleBuildItinerary = () => {
     buildItineraryFromCurrentSelection();
@@ -97,6 +129,15 @@ export default function RecommendationPage() {
         })}
       </div>
 
+      {/* AI Intelligence Notice */}
+      <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary-soft/40 border border-primary/20 text-on-surface">
+        <span className="material-symbols-outlined text-[24px] text-primary shrink-0">smart_toy</span>
+        <div className="text-xs sm:text-sm">
+          <span className="font-bold text-primary">Explainable AI Aktif:</span>{' '}
+          Skor dihitung matematis berdasarkan budget Rp{preferences.budget.toLocaleString('id-ID')} & minat Anda, dilengkapi narasi analisis dari AI model.
+        </div>
+      </div>
+
       {/* Destination Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredList.map((dest) => {
@@ -105,7 +146,10 @@ export default function RecommendationPage() {
           return (
             <DestinationCard
               key={dest.id}
-              destination={dest}
+              destination={{
+                ...dest,
+                aiExplanation: aiExplanations[dest.id] || dest.aiExplanation,
+              }}
               showMatchScore={true}
               isSelected={isSelected}
               onToggleSelect={toggleDestinationSelection}

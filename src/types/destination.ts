@@ -29,6 +29,7 @@ export interface Destination {
   bestTimeToVisit: string;
   matchReasons?: string[];
   matchScore?: number;
+  aiExplanation?: string;
 }
 
 export interface CulinarySpot {

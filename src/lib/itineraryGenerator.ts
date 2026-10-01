@@ -3,6 +3,24 @@ import { UserPreferences } from '../types/planner';
 import { TimelineSlot, BudgetBreakdown, Itinerary } from '../types/itinerary';
 import { GRESIK_CULINARY } from '../data/gresikCulinary';
 
+// Helper jarak jalan raya realistis (Haversine + 1.3x faktor jalan Gresik)
+function getRoadDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const roadKm = R * c * 1.3;
+  return Number(Math.max(1.0, roadKm).toFixed(1));
+}
+
+function getTravelMinutes(distKm: number, transport: string): number {
+  const avgSpeed = transport === 'motor' ? 32 : transport === 'mobil' ? 28 : 22;
+  return Math.max(8, Math.round((distKm / avgSpeed) * 60));
+}
+
 export function generateItinerary(
   preferences: UserPreferences,
   destinations: Destination[],
@@ -31,6 +49,18 @@ export function generateItinerary(
 
   const timeline: TimelineSlot[] = [];
 
+  // Koordinat titik awal (Surabaya default atau Alun-alun Gresik)
+  const startCoord = {
+    lat: preferences.startLocation?.toLowerCase().includes('gresik') ? -7.1558 : -7.2575,
+    lng: preferences.startLocation?.toLowerCase().includes('gresik') ? 112.6552 : 112.7521,
+  };
+
+  const d0 = chosenDestinations[0];
+  const leg0Km = d0
+    ? getRoadDistanceKm(startCoord.lat, startCoord.lng, d0.latitude, d0.longitude)
+    : 15.0;
+  const leg0Min = getTravelMinutes(leg0Km, preferences.transport);
+
   // Slot 1: Departure
   timeline.push({
     id: 'slot-departure',
@@ -43,30 +73,43 @@ export function generateItinerary(
     costLabel: `Rp${Math.round(transportBaseCost / 2).toLocaleString('id-ID')} (Bahan Bakar/Tiket)`,
     description: `Memulai perjalanan menuju Gresik via rute optimal dengan ${preferences.transport}.`,
     locationName: preferences.startLocation || 'Surabaya',
-    travelTimeToNextMinutes: 40,
-    distanceToNextKm: 18.5,
+    travelTimeToNextMinutes: leg0Min,
+    distanceToNextKm: leg0Km,
   });
 
+  let runningDistance = leg0Km;
+
   // Slot 2: First Destination
-  if (chosenDestinations[0]) {
+  if (d0) {
+    const legToCulinaryKm = getRoadDistanceKm(d0.latitude, d0.longitude, chosenCulinary.latitude, chosenCulinary.longitude);
+    const legToCulinaryMin = getTravelMinutes(legToCulinaryKm, preferences.transport);
+    runningDistance += legToCulinaryKm;
+
     timeline.push({
       id: `slot-dest-0`,
       time: '09:30',
       type: 'destination',
-      title: chosenDestinations[0].name,
-      categoryLabel: chosenDestinations[0].categoryLabel,
-      durationMinutes: chosenDestinations[0].recommendedDurationMinutes,
-      cost: chosenDestinations[0].price,
-      costLabel: chosenDestinations[0].price === 0 ? 'Gratis' : chosenDestinations[0].priceLabel,
-      description: chosenDestinations[0].shortDescription,
-      locationName: chosenDestinations[0].name,
-      travelTimeToNextMinutes: 20,
-      distanceToNextKm: 3.2,
-      destinationData: chosenDestinations[0],
+      title: d0.name,
+      categoryLabel: d0.categoryLabel,
+      durationMinutes: d0.recommendedDurationMinutes,
+      cost: d0.price,
+      costLabel: d0.price === 0 ? 'Gratis' : d0.priceLabel,
+      description: d0.shortDescription,
+      locationName: d0.name,
+      travelTimeToNextMinutes: legToCulinaryMin,
+      distanceToNextKm: legToCulinaryKm,
+      destinationData: d0,
     });
   }
 
   // Slot 3: Lunch / Local Culinary
+  const d1 = chosenDestinations[1];
+  const legFromCulinaryKm = d1
+    ? getRoadDistanceKm(chosenCulinary.latitude, chosenCulinary.longitude, d1.latitude, d1.longitude)
+    : 3.5;
+  const legFromCulinaryMin = getTravelMinutes(legFromCulinaryKm, preferences.transport);
+  runningDistance += legFromCulinaryKm;
+
   timeline.push({
     id: 'slot-culinary',
     time: '12:00',
@@ -78,46 +121,58 @@ export function generateItinerary(
     costLabel: `± Rp${culinaryCost.toLocaleString('id-ID')}`,
     description: `${chosenCulinary.description.slice(0, 90)}... Populer: ${chosenCulinary.popularMenu.join(', ')}`,
     locationName: chosenCulinary.name,
-    travelTimeToNextMinutes: 15,
-    distanceToNextKm: 2.1,
+    travelTimeToNextMinutes: legFromCulinaryMin,
+    distanceToNextKm: legFromCulinaryKm,
     culinaryData: chosenCulinary,
   });
 
   // Slot 4: Second Destination
-  if (chosenDestinations[1]) {
+  if (d1) {
+    const d2 = chosenDestinations[2];
+    const legToD2Km = d2
+      ? getRoadDistanceKm(d1.latitude, d1.longitude, d2.latitude, d2.longitude)
+      : getRoadDistanceKm(d1.latitude, d1.longitude, startCoord.lat, startCoord.lng);
+    const legToD2Min = getTravelMinutes(legToD2Km, preferences.transport);
+    runningDistance += legToD2Km;
+
     timeline.push({
       id: `slot-dest-1`,
       time: '13:30',
       type: 'destination',
-      title: chosenDestinations[1].name,
-      categoryLabel: chosenDestinations[1].categoryLabel,
-      durationMinutes: chosenDestinations[1].recommendedDurationMinutes,
-      cost: chosenDestinations[1].price,
-      costLabel: chosenDestinations[1].price === 0 ? 'Gratis' : chosenDestinations[1].priceLabel,
-      description: chosenDestinations[1].shortDescription,
-      locationName: chosenDestinations[1].name,
-      travelTimeToNextMinutes: 25,
-      distanceToNextKm: 4.8,
-      destinationData: chosenDestinations[1],
+      title: d1.name,
+      categoryLabel: d1.categoryLabel,
+      durationMinutes: d1.recommendedDurationMinutes,
+      cost: d1.price,
+      costLabel: d1.price === 0 ? 'Gratis' : d1.priceLabel,
+      description: d1.shortDescription,
+      locationName: d1.name,
+      travelTimeToNextMinutes: legToD2Min,
+      distanceToNextKm: legToD2Km,
+      destinationData: d1,
     });
   }
 
-  // Slot 5: Third Destination (if 1_day or 2_days)
-  if (chosenDestinations[2] && preferences.duration !== 'half_day') {
+  // Slot 5: Third Destination (jika 1 hari penuh & ada 3 destinasi)
+  if (chosenDestinations[2]) {
+    const d2 = chosenDestinations[2];
+    const returnLegKm = getRoadDistanceKm(d2.latitude, d2.longitude, startCoord.lat, startCoord.lng);
+    const returnLegMin = getTravelMinutes(returnLegKm, preferences.transport);
+    runningDistance += returnLegKm;
+
     timeline.push({
       id: `slot-dest-2`,
-      time: '15:45',
+      time: '15:30',
       type: 'destination',
-      title: chosenDestinations[2].name,
-      categoryLabel: chosenDestinations[2].categoryLabel,
-      durationMinutes: chosenDestinations[2].recommendedDurationMinutes,
-      cost: chosenDestinations[2].price,
-      costLabel: chosenDestinations[2].price === 0 ? 'Gratis' : chosenDestinations[2].priceLabel,
-      description: chosenDestinations[2].shortDescription,
-      locationName: chosenDestinations[2].name,
-      travelTimeToNextMinutes: 30,
-      distanceToNextKm: 5.0,
-      destinationData: chosenDestinations[2],
+      title: d2.name,
+      categoryLabel: d2.categoryLabel,
+      durationMinutes: d2.recommendedDurationMinutes,
+      cost: d2.price,
+      costLabel: d2.price === 0 ? 'Gratis' : d2.priceLabel,
+      description: d2.shortDescription,
+      locationName: d2.name,
+      travelTimeToNextMinutes: returnLegMin,
+      distanceToNextKm: returnLegKm,
+      destinationData: d2,
     });
   }
 
@@ -152,7 +207,7 @@ export function generateItinerary(
     selectedCulinary: [chosenCulinary],
     timeline,
     budget: budgetBreakdown,
-    totalDistanceKm: 28.5,
+    totalDistanceKm: Number(runningDistance.toFixed(1)),
     totalEstimatedTimeMinutes: preferences.duration === 'half_day' ? 360 : 540,
   };
 }

@@ -74,7 +74,17 @@ export function DestinationCard({
           </p>
 
           {/* Mengapa Direkomendasikan */}
-          {destination.matchReasons && destination.matchReasons.length > 0 && (
+          {destination.aiExplanation ? (
+            <div className="flex flex-col gap-1.5 p-3.5 bg-primary-soft/40 rounded-xl border border-primary/20">
+              <span className="font-label-sm text-primary uppercase tracking-wider text-[11px] font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                Analisis AI GATRA
+              </span>
+              <p className="font-body-md text-xs sm:text-[13px] text-on-surface leading-relaxed">
+                {destination.aiExplanation}
+              </p>
+            </div>
+          ) : destination.matchReasons && destination.matchReasons.length > 0 ? (
             <div className="flex flex-col gap-2 p-3.5 bg-background rounded-xl border border-border/70">
               <span className="font-label-sm text-on-surface-variant uppercase tracking-wider text-[11px] font-semibold flex items-center gap-1">
                 <span className="material-symbols-outlined text-[14px] text-primary">auto_awesome</span>
@@ -94,7 +104,7 @@ export function DestinationCard({
                 ))}
               </ul>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Card Actions */}
