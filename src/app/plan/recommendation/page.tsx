@@ -19,31 +19,17 @@ export default function RecommendationPage() {
     setIsGenerating,
   } = useTripPlanner();
 
-  const initialFilter =
-    preferences.interests.length === 1 &&
-    ['sejarah', 'kuliner', 'alam', 'religi'].includes(preferences.interests[0])
-      ? preferences.interests[0]
-      : 'all';
-
   const [loadingComplete, setLoadingComplete] = useState(!isGenerating);
-  const [activeFilter, setActiveFilter] = useState<string>(initialFilter);
+  const [activeFilter, setActiveFilter] = useState<string>('all');
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (
-      preferences.interests.length === 1 &&
-      ['sejarah', 'kuliner', 'alam', 'religi'].includes(preferences.interests[0])
-    ) {
-      setActiveFilter(preferences.interests[0]);
-    }
-  }, [preferences.interests]);
 
   const filterTabs = [
     { id: 'all', label: 'Semua Cocok' },
+    { id: 'kuliner', label: 'Kuliner & UMKM' },
     { id: 'sejarah', label: 'Sejarah & Budaya' },
-    { id: 'kuliner', label: 'Kuliner' },
     { id: 'alam', label: 'Alam & Pesisir' },
     { id: 'religi', label: 'Religi' },
+    { id: 'keluarga', label: 'Keluarga & Edukasi' },
   ];
 
   useEffect(() => {
@@ -95,7 +81,12 @@ export default function RecommendationPage() {
   const filteredList =
     activeFilter === 'all'
       ? recommendedDestinations
-      : recommendedDestinations.filter((d) => d.category === activeFilter);
+      : recommendedDestinations.filter((d) => {
+          if (activeFilter === 'keluarga') {
+            return d.category === 'keluarga' || d.category === 'edukasi';
+          }
+          return d.category === activeFilter;
+        });
 
   if (!loadingComplete) {
     return (
@@ -119,7 +110,7 @@ export default function RecommendationPage() {
           </h1>
         </div>
         <p className="font-body-md text-text-secondary text-sm sm:text-base">
-          {recommendedDestinations.length} tempat yang paling sesuai dengan budget Rp{preferences.budget.toLocaleString('id-ID')} dan minatmu.
+          {recommendedDestinations.length} tempat di Gresik yang paling sesuai dengan budget Rp{preferences.budget.toLocaleString('id-ID')} dan minatmu.
         </p>
       </div>
 
@@ -143,6 +134,17 @@ export default function RecommendationPage() {
           );
         })}
       </div>
+
+      {/* Informative Context Notice for Culinary Interest */}
+      {preferences.interests.includes('kuliner') && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-secondary-container/40 border border-primary/20 text-on-surface">
+          <span className="material-symbols-outlined text-[24px] text-primary shrink-0">restaurant</span>
+          <div className="text-xs sm:text-sm">
+            <span className="font-bold text-primary">Rekomendasi Kuliner & Wisata Gresik:</span>{' '}
+            Rekomendasi utama disusun memprioritaskan spot kuliner pilihanmu. Seluruh destinasi wisata sejarah, religi, alam, dan keluarga di Gresik tetap tersedia di katalog bawah dan dapat langsung kamu tambahkan ke jadwal.
+          </div>
+        </div>
+      )}
 
       {/* AI Intelligence Notice */}
       <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary-soft/40 border border-primary/20 text-on-surface">

@@ -4,6 +4,8 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CulinarySpot } from '../../types/destination';
+import { useTripPlanner } from '../../context/TripPlannerContext';
+import { culinaryToDestination } from '../../lib/recommendationEngine';
 
 interface FoodCardProps {
   food: CulinarySpot;
@@ -11,7 +13,13 @@ interface FoodCardProps {
   onToggleSelect?: (food: CulinarySpot) => void;
 }
 
-export function FoodCard({ food, isSelected = false, onToggleSelect }: FoodCardProps) {
+export function FoodCard({ food, isSelected, onToggleSelect }: FoodCardProps) {
+  const planner = useTripPlanner();
+  const effectiveIsSelected =
+    isSelected !== undefined ? isSelected : planner.selectedDestinations.some((d) => d.id === food.id);
+  const effectiveToggle =
+    onToggleSelect || ((f: CulinarySpot) => planner.toggleDestinationSelection(culinaryToDestination(f)));
+
   const [imgSrc, setImgSrc] = React.useState(food.image);
 
   React.useEffect(() => {
@@ -23,7 +31,7 @@ export function FoodCard({ food, isSelected = false, onToggleSelect }: FoodCardP
   return (
     <div
       className={`group flex flex-col bg-surface rounded-[20px] shadow-[0_10px_30px_rgba(37,37,37,0.05)] border transition-all duration-300 overflow-hidden hover:-translate-y-1 hover:shadow-[0_15px_40px_rgba(37,37,37,0.08)] ${
-        isSelected ? 'border-primary ring-2 ring-primary/40' : 'border-border'
+        effectiveIsSelected ? 'border-primary ring-2 ring-primary/40' : 'border-border'
       }`}
     >
       <div className="relative w-full aspect-video bg-surface-container-high overflow-hidden">
@@ -86,26 +94,26 @@ export function FoodCard({ food, isSelected = false, onToggleSelect }: FoodCardP
         </div>
 
         <div className="pt-2 flex items-center gap-2.5 border-t border-border mt-auto">
-          {onToggleSelect && (
+          {effectiveToggle && (
             <button
               type="button"
-              onClick={() => onToggleSelect(food)}
-              className={`flex-1 py-2.5 px-3 rounded-xl font-button-text text-xs sm:text-sm transition-all shadow-xs flex justify-center items-center gap-1.5 active:scale-95 ${
-                isSelected
+              onClick={() => effectiveToggle(food)}
+              className={`flex-1 py-3 px-4 rounded-xl font-button-text text-sm transition-all shadow-xs flex justify-center items-center gap-1.5 active:scale-95 ${
+                effectiveIsSelected
                   ? 'bg-primary text-on-primary font-bold'
                   : 'bg-primary-container hover:bg-primary text-on-primary-container hover:text-on-primary font-semibold'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">
-                {isSelected ? 'check' : 'add'}
+              <span className="material-symbols-outlined text-[18px]">
+                {effectiveIsSelected ? 'check' : 'add'}
               </span>
-              <span>{isSelected ? 'Terpilih' : 'Tambah'}</span>
+              <span>{effectiveIsSelected ? 'Terpilih' : 'Tambah'}</span>
             </button>
           )}
 
           <Link
             href={`/explore/food/${food.id}`}
-            className="flex-1 bg-surface hover:bg-surface-container border border-outline-variant text-on-surface font-button-text text-xs sm:text-sm py-2.5 px-3 rounded-xl transition-colors flex justify-center items-center"
+            className="flex-1 bg-surface hover:bg-surface-container border border-outline-variant text-on-surface font-button-text text-sm py-3 px-4 rounded-xl transition-colors flex justify-center items-center"
           >
             Detail Kuliner
           </Link>

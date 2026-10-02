@@ -1,33 +1,37 @@
-import { Destination, DestinationCategory } from '../types/destination';
+import { Destination, DestinationCategory, CulinarySpot } from '../types/destination';
 import { UserPreferences } from '../types/planner';
 import { GRESIK_DESTINATIONS } from '../data/gresikDestinations';
 import { GRESIK_CULINARY } from '../data/gresikCulinary';
 
-// Map CulinarySpot to Destination so they can be recommended and selected
-const mappedCulinary: Destination[] = GRESIK_CULINARY.map((c) => ({
-  id: c.id,
-  name: c.name,
-  category: 'kuliner', // Map all to 'kuliner' so it matches the filter tab and AI extraction
-  categoryLabel: c.categoryLabel,
-  description: c.description,
-  shortDescription: c.recommendedReason || c.description.slice(0, 60),
-  price: c.priceMin,
-  priceLabel: c.priceLabel,
-  rating: c.rating,
-  reviewCount: 300,
-  latitude: c.latitude,
-  longitude: c.longitude,
-  distanceKm: 2.5, // Default assumption
-  openingHours: c.openingHours,
-  recommendedDurationMinutes: 60,
-  address: c.address,
-  image: c.image,
-  facilities: ['Tempat Makan', 'Area Parkir'],
-  highlights: c.popularMenu,
-  bestTimeToVisit: 'Jam Makan (Siang / Malam)',
-}));
+// Helper to map CulinarySpot to Destination so they can be recommended and selected
+export function culinaryToDestination(c: CulinarySpot): Destination {
+  return {
+    id: c.id,
+    name: c.name,
+    category: 'kuliner', // Map all to 'kuliner' so it matches the filter tab and AI extraction
+    categoryLabel: c.categoryLabel,
+    description: c.description,
+    shortDescription: c.recommendedReason || c.description.slice(0, 60),
+    price: c.priceMin,
+    priceLabel: c.priceLabel,
+    rating: c.rating,
+    reviewCount: 300,
+    latitude: c.latitude,
+    longitude: c.longitude,
+    distanceKm: 2.5, // Default assumption
+    openingHours: c.openingHours,
+    recommendedDurationMinutes: 60,
+    address: c.address,
+    image: c.image,
+    facilities: ['Tempat Makan', 'Area Parkir'],
+    highlights: c.popularMenu,
+    bestTimeToVisit: 'Jam Makan (Siang / Malam)',
+  };
+}
 
-const ALL_COMBINED_DESTINATIONS = [...GRESIK_DESTINATIONS, ...mappedCulinary];
+export const mappedCulinary: Destination[] = GRESIK_CULINARY.map(culinaryToDestination);
+
+export const ALL_COMBINED_DESTINATIONS: Destination[] = [...GRESIK_DESTINATIONS, ...mappedCulinary];
 
 export interface ScoredDestination extends Destination {
   matchScore: number;
@@ -40,43 +44,36 @@ export function rankDestinations(
 ): ScoredDestination[] {
   const { budget, interests, duration, transport, travelStyle } = preferences;
 
-  // Filter ketat berdasarkan minat (interests) agar tidak campur
-  let validDestinations = allDestinations;
-  if (interests && interests.length > 0) {
-    const isCulinaryOnly = interests.length === 1 && interests[0] === 'kuliner';
-
-    if (isCulinaryOnly) {
-      // Jika user minta khusus kuliner, WAJIB tampilkan HANYA kuliner Gresik
-      validDestinations = allDestinations.filter((dest) => dest.category === 'kuliner');
-    } else {
-      validDestinations = allDestinations.filter((dest) => {
-        if (interests.includes(dest.category)) return true;
-        if (interests.includes('sejarah') && dest.category === 'religi') return true;
-        if (interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi')) return true;
-        return false;
-      });
-    }
-    // Fallback jika kosong
-    if (validDestinations.length === 0) validDestinations = allDestinations;
-  }
+  // Pertahankan seluruh destinasi & spot kuliner Gresik di dalam katalog,
+  // pembobotan skor (interestScore) yang akan memprioritaskan rekomendasi utama di urutan teratas.
+  const validDestinations = allDestinations;
 
   const scored = validDestinations.map((dest) => {
     let interestScore = 0;
     const reasons: string[] = [];
 
     // 1. Interest Match (35% weight -> max 35 pts)
-    const isDirectInterest = interests.includes(dest.category);
+    const hasInterests = interests && interests.length > 0;
+    const isDirectInterest = hasInterests && interests.includes(dest.category);
+
     if (isDirectInterest) {
       interestScore = 35;
       reasons.push(`Sesuai minat ${dest.categoryLabel.toLowerCase()}`);
-    } else if (interests.includes('sejarah') && dest.category === 'religi') {
+    } else if (hasInterests && interests.includes('sejarah') && dest.category === 'religi') {
       interestScore = 24;
       reasons.push('Memiliki nilai sejarah & heritage tinggi');
-    } else if (interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi')) {
+    } else if (hasInterests && interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi')) {
       interestScore = 22;
       reasons.push('Ramah untuk kunjungan santai keluarga');
-    } else {
+    } else if (hasInterests) {
       interestScore = 10;
+      if (interests.includes('kuliner')) {
+        reasons.push('Destinasi wisata pelengkap kuliner Gresik');
+      } else {
+        reasons.push('Destinasi wisata populer di Gresik');
+      }
+    } else {
+      interestScore = 20;
     }
 
     // 2. Budget Score (25% weight -> max 25 pts)

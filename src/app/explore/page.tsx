@@ -7,6 +7,7 @@ import { GRESIK_CULINARY } from '../../data/gresikCulinary';
 import { DestinationCard } from '../../components/explore/DestinationCard';
 import { FoodCard } from '../../components/explore/FoodCard';
 import { useTripPlanner } from '../../context/TripPlannerContext';
+import { culinaryToDestination } from '../../lib/recommendationEngine';
 
 function ExploreContent() {
   const searchParams = useSearchParams();
@@ -173,9 +174,17 @@ function ExploreContent() {
         <div>
           {filteredCulinary.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCulinary.map((food) => (
-                <FoodCard key={food.id} food={food} />
-              ))}
+              {filteredCulinary.map((food) => {
+                const isSelected = selectedDestinations.some((d) => d.id === food.id);
+                return (
+                  <FoodCard
+                    key={food.id}
+                    food={food}
+                    isSelected={isSelected}
+                    onToggleSelect={(f) => toggleDestinationSelection(culinaryToDestination(f))}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16 bg-surface rounded-3xl border border-border p-8">

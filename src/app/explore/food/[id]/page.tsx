@@ -5,13 +5,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { GRESIK_CULINARY } from '../../../../data/gresikCulinary';
+import { useTripPlanner } from '../../../../context/TripPlannerContext';
+import { culinaryToDestination } from '../../../../lib/recommendationEngine';
 
 export default function FoodDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
 
+  const { selectedDestinations, toggleDestinationSelection } = useTripPlanner();
+
   const food = GRESIK_CULINARY.find((f) => f.id === id) || GRESIK_CULINARY[0];
+  const isSelected = selectedDestinations.some((d) => d.id === food.id);
 
   return (
     <div className="max-w-4xl mx-auto px-margin-mobile lg:px-margin-desktop py-6 sm:py-10 space-y-8">
@@ -138,15 +143,32 @@ export default function FoodDetailPage() {
           </div>
         </div>
 
-        <Link href="/plan">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
-            className="px-6 py-3 bg-primary text-on-primary hover:bg-[#5e4700] font-button-text font-bold text-sm sm:text-base rounded-xl transition-all shadow-sm flex items-center gap-2 active:scale-95"
+            onClick={() => toggleDestinationSelection(culinaryToDestination(food))}
+            className={`font-button-text font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition-all shadow-xs flex items-center gap-2 active:scale-95 ${
+              isSelected
+                ? 'bg-primary text-on-primary'
+                : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary'
+            }`}
           >
-            <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-            <span>Masukkan ke Rencana Trip</span>
+            <span className="material-symbols-outlined text-[18px]">
+              {isSelected ? 'check' : 'add'}
+            </span>
+            <span>{isSelected ? 'Sudah Ada di Trip' : 'Tambah ke Trip'}</span>
           </button>
-        </Link>
+
+          <Link href="/plan">
+            <button
+              type="button"
+              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-3 rounded-xl border border-border hover:border-primary/50 font-button-text text-sm font-semibold text-on-surface-variant transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+              <span>Susun Perjalanan</span>
+            </button>
+          </Link>
+        </div>
       </div>
     </div>
   );
