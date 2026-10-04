@@ -39,6 +39,7 @@ export default function FoodDetailPage() {
           alt={food.name}
           fill
           priority
+          unoptimized
           sizes="(max-width: 768px) 100vw, 896px"
           className="object-cover"
         />

@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: 'GATRA — AI Travel Planner Gresik',
   description:
     'Asisten perencanaan perjalanan wisata personal di Kabupaten Gresik berbasis AI. Temukan destinasi, kuliner, dan susun jadwal perjalanan impianmu dengan mudah.',
+  icons: {
+    icon: '/icon.webp',
+  },
 };
 
 export default function RootLayout({
