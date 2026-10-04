@@ -114,8 +114,8 @@ export const GRESIK_DESTINATIONS: Destination[] = [
   {
     id: 'pantai-delegan',
     name: 'Wisata Bahari Pantai Pasir Putih Delegan',
-    category: 'keluarga',
-    categoryLabel: 'Bahari & Keluarga',
+    category: 'alam',
+    categoryLabel: 'Pantai & Pesisir',
     description: 'Pantai pasir putih berombak tenang di pesisir utara Gresik, sangat cocok untuk rekreasi keluarga, bermain pasir, naik perahu wisata, dan menikmati kelapa muda segar.',
     shortDescription: 'Pantai pasir putih dengan ombak tenang ramah anak di pesisir utara Gresik.',
     price: 10000,

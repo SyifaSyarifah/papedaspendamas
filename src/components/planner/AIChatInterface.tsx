@@ -39,7 +39,7 @@ export function AIChatInterface() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoTriggeredRef = useRef(false);
-  const { preferences, updatePreferences } = useTripPlanner();
+  const { preferences, updatePreferences, setIsGenerating } = useTripPlanner();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
@@ -49,16 +49,18 @@ export function AIChatInterface() {
   const [isAIOffline, setIsAIOffline] = useState(false);
   const [offlineMessage, setOfflineMessage] = useState('');
 
+  const [chatExtractedPrefs, setChatExtractedPrefs] = useState<Record<string, unknown>>({});
+
   const initialMessages: ChatMessage[] = [
     {
       id: 'msg-1',
       sender: 'ai',
-      text: 'Halo! Saya GATRA. Ceritakan perjalanan yang kamu inginkan di Gresik, nanti saya bantu pilihkan destinasi, kuliner, dan susunkan jadwal perjalanan terbaik.',
+      text: 'Halo! Saya GATRA AI. Ceritakan perjalanan yang kamu inginkan di Gresik, nanti saya bantu pilihkan destinasi, kuliner, dan susunkan jadwal perjalanan terbaik.',
       timestamp: '09:00',
       quickChoices: [
-        'Saya punya budget 150 ribu & suka sejarah',
-        'Wisata alam & kuliner santai 1 hari',
-        'Liburan keluarga hemat di Gresik',
+        'Saya punya budget 100 ribu untuk kulineran',
+        'Wisata alam & pantai 1 hari',
+        'Ziarah & wisata sejarah di Gresik',
       ],
     },
   ];
@@ -110,7 +112,8 @@ export function AIChatInterface() {
   }, [isTyping]);
 
   /**
-   * Task 2.3 — Ganti regex mock dengan fetch ke /api/ai/chat
+   * Task 2.3 — Panggilan fetch ke /api/ai/chat
+   * HANYA mengirimkan preferensi yang benar-benar telah diisi oleh user dalam percakapan chat.
    */
   const callAIChat = async (query: string): Promise<ChatAPIResponse> => {
     // Sertakan riwayat percakapan untuk multi-turn context
@@ -122,19 +125,12 @@ export function AIChatInterface() {
     // Tambahkan pesan user terbaru ke riwayat
     historyForAPI.push({ sender: 'user', text: query });
 
-    // Preferensi yang sudah terekstrak sebagai konteks tambahan
-    const currentPrefs: Record<string, unknown> = {};
-    if (preferences.budget) currentPrefs.budget = preferences.budget;
-    if (preferences.duration) currentPrefs.duration = preferences.duration;
-    if (preferences.interests.length > 0) currentPrefs.interests = preferences.interests;
-    if (preferences.transport) currentPrefs.transport = preferences.transport;
-
     const response = await fetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: historyForAPI,
-        currentPreferences: Object.keys(currentPrefs).length > 0 ? currentPrefs : undefined,
+        currentPreferences: Object.keys(chatExtractedPrefs).length > 0 ? chatExtractedPrefs : undefined,
       }),
       signal: AbortSignal.timeout(12000), // 12 detik timeout di sisi frontend
     });
@@ -174,22 +170,23 @@ export function AIChatInterface() {
         return; // Hentikan proses, jangan tambah pesan AI
       }
 
-      // Sync preferensi yang diekstrak AI ke TripPlannerContext
+      // Sync preferensi yang diekstrak AI ke state percakapan & TripPlannerContext
       if (data.extractedPreferences) {
         const prefs = data.extractedPreferences;
+        setChatExtractedPrefs((prev) => ({ ...prev, ...prefs }));
         const partialUpdate: Partial<UserPreferences> = {};
 
-        if (prefs.budget != null) partialUpdate.budget = prefs.budget;
+        if (typeof prefs.budget === 'number' && prefs.budget > 0) {
+          partialUpdate.budget = prefs.budget;
+        }
         if (prefs.duration != null) partialUpdate.duration = prefs.duration;
         if (prefs.transport != null) partialUpdate.transport = prefs.transport;
         if (prefs.travelStyle != null) partialUpdate.travelStyle = prefs.travelStyle;
         if (prefs.startLocation != null) partialUpdate.startLocation = prefs.startLocation;
         if (Array.isArray(prefs.interests) && prefs.interests.length > 0) {
-          // Ganti interests sepenuhnya dengan hasil ekstraksi AI.
-          // AI sudah menerima 'currentPreferences' di konteks, jadi AI yang menentukan 
-          // apakah minat sebelumnya dipertahankan atau diganti berdasarkan konteks obrolan.
           partialUpdate.interests = prefs.interests as UserPreferences['interests'];
         }
+        partialUpdate.queryHint = query;
 
         if (Object.keys(partialUpdate).length > 0) {
           updatePreferences(partialUpdate);
@@ -209,12 +206,6 @@ export function AIChatInterface() {
 
       setMessages((prev) => [...prev, aiReply]);
 
-      // Jika preferensi sudah lengkap, otomatis redirect ke summary (dengan delay)
-      if (data.isComplete) {
-        setTimeout(() => {
-          router.push('/plan/summary');
-        }, 1500);
-      }
     } catch {
       setIsTyping(false);
       // Task 2.4 — Error fetch (timeout, jaringan terputus, dll)
@@ -240,7 +231,8 @@ export function AIChatInterface() {
 
   const handleQuickChoiceClick = (choice: string) => {
     if (choice.includes('Rekomendasi') || choice.includes('Lihat Rekomendasi')) {
-      router.push('/plan/summary');
+      setIsGenerating(true);
+      router.push('/plan/recommendation');
       return;
     }
     handleSend(choice);
@@ -290,6 +282,7 @@ export function AIChatInterface() {
           type="button"
           onClick={() => {
             setMessages(initialMessages);
+            setChatExtractedPrefs({});
             setIsAIOffline(false);
           }}
           className="p-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-colors"
@@ -404,20 +397,27 @@ export function AIChatInterface() {
               {/* Quick Choice Buttons */}
               {isAi && msg.quickChoices && msg.quickChoices.length > 0 && (
                 <div className="flex flex-wrap gap-2.5 ml-14 mt-3">
-                  {msg.quickChoices.map((choice, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleQuickChoiceClick(choice)}
-                      disabled={isTyping}
-                      className="px-4 py-2 rounded-full border border-border bg-surface font-button-text text-xs sm:text-sm text-on-surface-variant hover:border-primary hover:text-primary hover:bg-warning-soft/30 transition-all shadow-xs flex items-center gap-1.5 active:scale-95 text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span className="material-symbols-outlined text-[16px] text-primary">
-                        schedule
-                      </span>
-                      <span>{choice}</span>
-                    </button>
-                  ))}
+                  {msg.quickChoices.map((choice, i) => {
+                    const isRecommendation = choice.includes('Rekomendasi') || choice.includes('Lihat Rekomendasi');
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleQuickChoiceClick(choice)}
+                        disabled={isTyping}
+                        className={`px-4 py-2 rounded-full font-button-text text-xs sm:text-sm transition-all shadow-xs flex items-center gap-1.5 active:scale-95 text-left disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isRecommendation
+                            ? 'bg-primary-container text-on-primary-container border-2 border-primary font-bold shadow-md hover:bg-primary hover:text-on-primary'
+                            : 'border border-border bg-surface text-on-surface-variant hover:border-primary hover:text-primary hover:bg-warning-soft/30'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[16px] text-primary">
+                          {isRecommendation ? 'auto_awesome' : 'schedule'}
+                        </span>
+                        <span>{choice}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

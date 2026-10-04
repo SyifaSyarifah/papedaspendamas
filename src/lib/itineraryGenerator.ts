@@ -31,7 +31,7 @@ export function generateItinerary(
   const chosenItems = destinations.slice(0, Math.max(1, Math.min(destinations.length, maxItems)));
 
   const transportBaseCost =
-    preferences.transport === 'motor' ? 25000 : preferences.transport === 'mobil' ? 60000 : 20000;
+    preferences.transport === 'motor' ? 20000 : preferences.transport === 'mobil' ? 50000 : 15000;
 
   // Pisahkan destinasi umum dan kuliner
   const nonCulinaryItems = chosenItems.filter((d) => d.category !== 'kuliner');
@@ -42,17 +42,18 @@ export function generateItinerary(
     ? culinaryItems.reduce((sum, c) => sum + (c.price || 25000), 0)
     : (culinaryList && culinaryList.length > 0 ? culinaryList[0].priceMin : 25000);
 
-  const activityCost = 15000; // parkir, infaq, tip
+  const activityCost = 10000; // parkir, infaq, tip
   const totalCost = transportBaseCost + ticketsCost + culinaryCost + activityCost;
 
+  const budgetCap = preferences.budget || 150000;
   const budgetBreakdown: BudgetBreakdown = {
     transport: transportBaseCost,
     tickets: ticketsCost,
     culinary: culinaryCost,
     activity: activityCost,
     total: totalCost,
-    budgetCap: preferences.budget,
-    remaining: Math.max(0, preferences.budget - totalCost),
+    budgetCap: budgetCap,
+    remaining: Math.max(0, budgetCap - totalCost),
   };
 
   const timeline: TimelineSlot[] = [];
@@ -116,6 +117,23 @@ export function generateItinerary(
     const isLast = index === chosenItems.length - 1;
     const duration = item.recommendedDurationMinutes || (isCulinary ? 60 : 75);
 
+    // Cari data kuliner asli jika item berupa kuliner
+    const matchingCulinary = isCulinary
+      ? GRESIK_CULINARY.find((c) => c.id === item.id)
+      : undefined;
+
+    // Judul slot kontekstual yang human-readable dan variatif
+    let slotTitle = item.name;
+    if (isCulinary) {
+      if (index === 0) slotTitle = `Sarapan Pagi: ${item.name}`;
+      else if (index === 1) slotTitle = `Makan Siang Khas: ${item.name}`;
+      else slotTitle = `Kuliner Sore & Oleh-oleh: ${item.name}`;
+    } else {
+      if (index === 0) slotTitle = `Kunjungan Pagi: ${item.name}`;
+      else if (index === 1) slotTitle = `Eksplorasi Siang: ${item.name}`;
+      else slotTitle = `Wisata Sore: ${item.name}`;
+    }
+
     // Hitung jarak ke item berikutnya atau ke titik pulang jika terakhir
     const nextItem = !isLast ? chosenItems[index + 1] : null;
     const nextLegKm = nextItem
@@ -128,16 +146,17 @@ export function generateItinerary(
       id: `slot-item-${item.id}`,
       time: formatTime(currentHour, currentMinute),
       type: isCulinary ? 'culinary' : 'destination',
-      title: item.name,
+      title: slotTitle,
       categoryLabel: item.categoryLabel,
       durationMinutes: duration,
       cost: item.price,
       costLabel: item.price === 0 ? 'Gratis' : item.priceLabel,
-      description: item.shortDescription || item.description.slice(0, 100),
+      description: item.shortDescription || item.description.slice(0, 110),
       locationName: item.name,
       travelTimeToNextMinutes: nextLegMin,
       distanceToNextKm: nextLegKm,
       destinationData: item,
+      culinaryData: matchingCulinary,
     });
 
     addMinutes(duration + nextLegMin);
@@ -164,44 +183,59 @@ export function generateItinerary(
       ? '1 Hari'
       : '2 Hari';
 
+  let title = `Jelajah Gresik ${durationLabel}`;
   let subtitle = '';
-  if (nonCulinaryItems.length > 0 && culinaryItems.length > 0) {
+
+  if (culinaryItems.length === chosenItems.length) {
+    title = `Wisata Kuliner Khas Gresik (${durationLabel})`;
+    subtitle = `${chosenItems.length} Spot Kuliner Pilihan • Budget Pas & Hemat`;
+  } else if (nonCulinaryItems.length > 0 && culinaryItems.length > 0) {
+    title = `Eksplorasi Wisata & Kuliner Gresik (${durationLabel})`;
     subtitle = `${nonCulinaryItems.length} Destinasi Wisata + ${culinaryItems.length} Spot Kuliner`;
-  } else if (culinaryItems.length > 0) {
-    subtitle = `${culinaryItems.length} Spot Kuliner Pilihan Gresik`;
+  } else if (nonCulinaryItems.every((d) => d.category === 'religi' || d.category === 'sejarah')) {
+    title = `Jelajah Sejarah & Religi Gresik (${durationLabel})`;
+    subtitle = `${chosenItems.length} Situs Heritage & Ziarah Bersejarah`;
+  } else if (nonCulinaryItems.every((d) => d.category === 'alam')) {
+    title = `Pesona Bahari & Alam Gresik (${durationLabel})`;
+    subtitle = `${chosenItems.length} Destinasi Alam & Pesisir`;
   } else {
-    subtitle = `${nonCulinaryItems.length} Destinasi Wisata Pilihan`;
+    title = `Jelajah Wisata Gresik ${durationLabel}`;
+    subtitle = `${chosenItems.length} Tempat Wisata Pilihan Terbaik`;
   }
 
   // Siapkan culinary data untuk peta
   const selectedCulinaryList: CulinarySpot[] = culinaryItems.length > 0
-    ? culinaryItems.map((c) => ({
-        id: c.id,
-        name: c.name,
-        category: c.category,
-        categoryLabel: c.categoryLabel,
-        description: c.description,
-        priceMin: c.price,
-        priceMax: c.price * 1.5,
-        priceLabel: c.priceLabel,
-        rating: c.rating,
-        latitude: c.latitude,
-        longitude: c.longitude,
-        openingHours: c.openingHours,
-        address: c.address,
-        image: c.image,
-        popularMenu: c.highlights || [],
-        recommendedReason: c.shortDescription,
-      }))
+    ? culinaryItems.map((c) => {
+        const found = GRESIK_CULINARY.find((item) => item.id === c.id);
+        if (found) return found;
+        return {
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          categoryLabel: c.categoryLabel,
+          description: c.description,
+          priceMin: c.price,
+          priceMax: c.price * 1.5,
+          priceLabel: c.priceLabel,
+          rating: c.rating,
+          latitude: c.latitude,
+          longitude: c.longitude,
+          openingHours: c.openingHours,
+          address: c.address,
+          image: c.image,
+          popularMenu: c.highlights || [],
+          recommendedReason: c.shortDescription,
+        };
+      })
     : (culinaryList && culinaryList.length > 0 ? culinaryList : [GRESIK_CULINARY[0]]);
 
   return {
     id: `trip-${Date.now()}`,
-    title: `Jelajah Gresik ${durationLabel}`,
+    title,
     subtitle,
     createdAt: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
     preferences,
-    selectedDestinations: nonCulinaryItems.length > 0 ? nonCulinaryItems : chosenItems,
+    selectedDestinations: chosenItems, // Sertakan seluruh destinasi terpilih agar rute peta lengkap
     selectedCulinary: selectedCulinaryList,
     timeline,
     budget: budgetBreakdown,

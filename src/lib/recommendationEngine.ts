@@ -42,52 +42,92 @@ export function rankDestinations(
   preferences: UserPreferences,
   allDestinations: Destination[] = ALL_COMBINED_DESTINATIONS
 ): ScoredDestination[] {
-  const { budget, interests, duration, transport, travelStyle } = preferences;
+  const { budget = 150000, interests = [], duration, transport, travelStyle } = preferences;
 
-  // Pertahankan seluruh destinasi & spot kuliner Gresik di dalam katalog,
-  // pembobotan skor (interestScore) yang akan memprioritaskan rekomendasi utama di urutan teratas.
   const validDestinations = allDestinations;
+  const hasInterests = interests && interests.length > 0;
+  const isExclusiveInterest = hasInterests && interests.length === 1;
 
   const scored = validDestinations.map((dest) => {
     let interestScore = 0;
     const reasons: string[] = [];
 
-    // 1. Interest Match (35% weight -> max 35 pts)
-    const hasInterests = interests && interests.length > 0;
-    const isDirectInterest = hasInterests && interests.includes(dest.category);
+    // 1. Interest Match (Strict Filtering for specific requests)
+    const isDirectInterest = hasInterests && (
+      interests.includes(dest.category) ||
+      (interests.includes('alam') && (dest.id === 'pantai-delegan' || dest.id === 'mangrove-ujungpangkah'))
+    );
+
+    let keywordBonus = 0;
+    if (preferences.queryHint) {
+      const q = preferences.queryHint.toLowerCase();
+      // Prioritaskan pantai jika user menyebut pantai / laut / bahari / pesisir
+      if (
+        (q.includes('pantai') || q.includes('laut') || q.includes('bahari') || q.includes('pesisir')) &&
+        (dest.id === 'pantai-delegan' || dest.name.toLowerCase().includes('pantai') || dest.categoryLabel.toLowerCase().includes('pantai'))
+      ) {
+        keywordBonus += 35;
+        reasons.unshift('Wisata pantai pasir putih utama pilihanmu di pesisir Gresik');
+      }
+      // Prioritaskan bukit jika user menyebut bukit / jamur / geowisata
+      if (
+        (q.includes('bukit') || q.includes('jamur') || q.includes('geowisata')) &&
+        (dest.id === 'bukit-jamur' || dest.name.toLowerCase().includes('bukit'))
+      ) {
+        keywordBonus += 25;
+        reasons.unshift('Formasi batuan geologi jamur unik di kawasan perbukitan');
+      }
+      // Prioritaskan mangrove jika user menyebut mangrove / bakau
+      if ((q.includes('mangrove') || q.includes('bakau')) && dest.id === 'mangrove-ujungpangkah') {
+        keywordBonus += 30;
+        reasons.unshift('Ekowisata hutan mangrove pesisir muara Bengawan Solo');
+      }
+      // Prioritaskan kuliner spesifik
+      if (
+        (q.includes('krawu') || q.includes('pudak') || q.includes('otak') || q.includes('kelan')) &&
+        dest.category === 'kuliner'
+      ) {
+        keywordBonus += 25;
+      }
+    }
 
     if (isDirectInterest) {
-      interestScore = 35;
-      reasons.push(`Sesuai minat ${dest.categoryLabel.toLowerCase()}`);
+      interestScore = 45 + keywordBonus;
+      reasons.push(`Sesuai minat utama: ${dest.categoryLabel}`);
     } else if (hasInterests && interests.includes('sejarah') && dest.category === 'religi') {
-      interestScore = 24;
-      reasons.push('Memiliki nilai sejarah & heritage tinggi');
-    } else if (hasInterests && interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi')) {
-      interestScore = 22;
-      reasons.push('Ramah untuk kunjungan santai keluarga');
+      interestScore = 25 + keywordBonus;
+      reasons.push('Nilai sejarah & heritage selaras');
+    } else if (hasInterests && interests.includes('religi') && dest.category === 'sejarah') {
+      interestScore = 25 + keywordBonus;
+      reasons.push('Nilai heritage & sejarah spiritual');
+    } else if (hasInterests && interests.includes('keluarga') && (dest.category === 'alam' || dest.category === 'edukasi' || dest.id === 'pantai-delegan')) {
+      interestScore = 25 + keywordBonus;
+      reasons.push('Ramah untuk rekreasi keluarga');
     } else if (hasInterests) {
-      interestScore = 10;
-      if (interests.includes('kuliner')) {
-        reasons.push('Destinasi wisata pelengkap kuliner Gresik');
-      } else {
-        reasons.push('Destinasi wisata populer di Gresik');
-      }
+      // Jika user spesifik memilih minat (misal: "kuliner saja"), kategori lain dikenakan penalti
+      interestScore = isExclusiveInterest ? -35 : -15;
+      reasons.push(`Kategori ${dest.categoryLabel} (opsional di luar minat utama)`);
     } else {
-      interestScore = 20;
+      interestScore = 20 + keywordBonus;
     }
 
     // 2. Budget Score (25% weight -> max 25 pts)
     let budgetScore = 0;
-    const priceRatio = dest.price / (budget || 150000);
-    if (dest.price === 0) {
+    const userBudget = budget || 150000;
+    const priceRatio = dest.price / userBudget;
+
+    if (dest.price > userBudget) {
+      budgetScore = -20;
+      reasons.push(`Melebihi anggaran (Rp${dest.price.toLocaleString('id-ID')})`);
+    } else if (dest.price === 0) {
       budgetScore = 25;
-      reasons.push('Tiket masuk gratis & hemat');
-    } else if (priceRatio <= 0.1) {
-      budgetScore = 24;
-      reasons.push(`Sangat terjangkau (${dest.priceLabel})`);
+      reasons.push('Tiket masuk gratis & sangat hemat');
     } else if (priceRatio <= 0.25) {
+      budgetScore = 25;
+      reasons.push(`Sangat hemat & sesuai budget (${dest.priceLabel})`);
+    } else if (priceRatio <= 0.5) {
       budgetScore = 20;
-      reasons.push(`Sesuai budget Rp${budget.toLocaleString('id-ID')}`);
+      reasons.push(`Pas dalam anggaran Rp${userBudget.toLocaleString('id-ID')}`);
     } else {
       budgetScore = 12;
     }
@@ -96,10 +136,10 @@ export function rankDestinations(
     let distanceScore = 0;
     if (dest.distanceKm <= 5) {
       distanceScore = 20;
-      reasons.push('Lokasi dekat di pusat kota Gresik');
+      reasons.push('Dekat & mudah dijangkau di pusat Gresik');
     } else if (dest.distanceKm <= 20) {
       distanceScore = 16;
-      reasons.push('Rute efisien dan mudah diakses');
+      reasons.push('Rute strategis & akses mudah');
     } else {
       distanceScore = (duration === '2_days' || transport === 'mobil') ? 14 : 10;
       if (duration === '1_day' && transport === 'motor' && dest.distanceKm > 30) {
@@ -111,7 +151,7 @@ export function rankDestinations(
     let timeScore = 0;
     if (travelStyle === 'santai' && dest.recommendedDurationMinutes <= 90) {
       timeScore = 15;
-      reasons.push('Waktu kunjungan pas untuk gaya santai');
+      reasons.push('Durasi pas untuk perjalanan santai');
     } else if (travelStyle === 'padat') {
       timeScore = 14;
     } else {
@@ -121,23 +161,47 @@ export function rankDestinations(
     // 5. Rating Score (10% weight -> max 10 pts)
     const ratingScore = Math.min(10, Math.round((dest.rating / 5.0) * 10));
     if (dest.rating >= 4.7) {
-      reasons.push(`Rating pengunjung tinggi (${dest.rating}/5.0)`);
+      reasons.push(`Rating favorit pengunjung (${dest.rating}/5.0)`);
     }
 
     const totalRaw = interestScore + budgetScore + distanceScore + timeScore + ratingScore;
-    // Normalize into 75-96% range for authentic feel
-    const matchScore = Math.min(97, Math.max(72, totalRaw));
 
-    // Ensure we keep up to 3 most relevant reasons
-    const distinctReasons = Array.from(new Set(reasons)).slice(0, 3);
+    // Normalisasi skor:
+    // Jika sesuai minat langsung: 82% - 99%
+    // Jika tidak sesuai minat eksplisit: 45% - 68%
+    let matchScore = 70;
+    if (isDirectInterest) {
+      const maxScore = keywordBonus > 0 ? 99 : 98;
+      matchScore = Math.min(maxScore, Math.max(82, 60 + totalRaw * 0.4));
+    } else if (hasInterests && isExclusiveInterest) {
+      matchScore = Math.min(68, Math.max(45, 50 + totalRaw * 0.3));
+    } else {
+      matchScore = Math.min(92, Math.max(65, 55 + totalRaw * 0.4));
+    }
+
+    const distinctReasons = Array.from(new Set(reasons))
+      .filter((r) => !r.includes('opsional di luar minat'))
+      .slice(0, 3);
 
     return {
       ...dest,
-      matchScore,
-      matchReasons: distinctReasons.length > 0 ? distinctReasons : ['Pilihan wisata favorit di Gresik', 'Akses mudah'],
+      matchScore: Math.round(matchScore),
+      matchReasons: distinctReasons.length > 0 ? distinctReasons : ['Pilihan populer di Gresik', 'Akses mudah'],
     };
   });
 
-  // Sort descending by score
-  return scored.sort((a, b) => b.matchScore - a.matchScore);
+  // Sort: Destinasi yang cocok dengan minat langsung HARUS selalu di atas
+  return scored.sort((a, b) => {
+    if (hasInterests) {
+      const aMatch = interests.includes(a.category);
+      const bMatch = interests.includes(b.category);
+      if (aMatch && !bMatch) return -1;
+      if (!aMatch && bMatch) return 1;
+    }
+    if (b.matchScore !== a.matchScore) {
+      return b.matchScore - a.matchScore;
+    }
+    // Tie-breaker: Destinasi dengan kepopuleran dan ulasan pengunjung tertinggi diutamakan
+    return (b.reviewCount * b.rating) - (a.reviewCount * a.rating);
+  });
 }

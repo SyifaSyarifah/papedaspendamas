@@ -20,7 +20,9 @@ export default function RecommendationPage() {
   } = useTripPlanner();
 
   const [loadingComplete, setLoadingComplete] = useState(!isGenerating);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const initialFilter =
+    preferences.interests.length === 1 ? preferences.interests[0] : 'all';
+  const [activeFilter, setActiveFilter] = useState<string>(initialFilter);
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
 
   const filterTabs = [
@@ -83,7 +85,10 @@ export default function RecommendationPage() {
       ? recommendedDestinations
       : recommendedDestinations.filter((d) => {
           if (activeFilter === 'keluarga') {
-            return d.category === 'keluarga' || d.category === 'edukasi';
+            return d.category === 'keluarga' || d.category === 'edukasi' || d.id === 'pantai-delegan';
+          }
+          if (activeFilter === 'alam') {
+            return d.category === 'alam' || d.id === 'pantai-delegan' || d.id === 'mangrove-ujungpangkah';
           }
           return d.category === activeFilter;
         });

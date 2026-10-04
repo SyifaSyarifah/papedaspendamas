@@ -45,6 +45,7 @@ export function DestinationCard({
           alt={destination.name}
           fill
           unoptimized
+          referrerPolicy="no-referrer"
           onError={() => setImgSrc(fallbackImage)}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-700"
@@ -141,7 +142,7 @@ export function DestinationCard({
           )}
 
           <Link
-            href={`/explore/destination/${destination.id}`}
+            href={destination.category === 'kuliner' ? `/explore/food/${destination.id}` : `/explore/destination/${destination.id}`}
             className="flex-1 bg-surface hover:bg-surface-container border border-outline-variant text-on-surface font-button-text text-sm py-3 px-4 rounded-xl transition-colors flex justify-center items-center"
           >
             Detail

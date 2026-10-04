@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation';
 import { useTripPlanner } from '../context/TripPlannerContext';
 import { GRESIK_DESTINATIONS } from '../data/gresikDestinations';
 import { GRESIK_CULINARY } from '../data/gresikCulinary';
+import { extractPreferencesLocally } from '../lib/ai/parser';
 
 export default function HomePage() {
   const router = useRouter();
-  const { updatePreferences } = useTripPlanner();
+  const { updatePreferences, setIsGenerating } = useTripPlanner();
   const [promptInput, setPromptInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [activeChip, setActiveChip] = useState<string>('Kawasan Kota Tua');
@@ -30,10 +31,11 @@ export default function HomePage() {
 
   const handleHeroSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (promptInput.trim()) {
-      router.push(`/plan?mode=ai&q=${encodeURIComponent(promptInput)}`);
+    const query = promptInput.trim();
+    if (query) {
+      router.push(`/plan?mode=ai&q=${encodeURIComponent(query)}`);
     } else {
-      router.push('/plan');
+      router.push('/plan?mode=ai');
     }
   };
 

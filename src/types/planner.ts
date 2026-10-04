@@ -12,6 +12,7 @@ export interface UserPreferences {
   transport: TransportType;
   travelStyle: TravelStyle;
   groupSize: number;
+  queryHint?: string;
 }
 
 export interface ChatMessage {

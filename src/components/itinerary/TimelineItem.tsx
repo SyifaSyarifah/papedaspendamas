@@ -39,12 +39,25 @@ export function TimelineItem({ slot, isLast = false }: TimelineItemProps) {
     }
   };
 
-  const imageSrc =
+  const rawImageSrc =
     slot.destinationData?.image ||
     slot.culinaryData?.image ||
     (slot.type === 'departure'
       ? 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=400&q=80'
       : undefined);
+
+  const fallbackImage = slot.type === 'culinary'
+    ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+    : 'https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?auto=format&fit=crop&w=800&q=80';
+
+  const [imgSrc, setImgSrc] = React.useState<string | undefined>(rawImageSrc);
+
+  React.useEffect(() => {
+    setImgSrc(rawImageSrc);
+  }, [rawImageSrc]);
+
+  const isCulinarySlot = slot.type === 'culinary' || slot.destinationData?.category === 'kuliner';
+  const targetId = slot.culinaryData?.id || slot.destinationData?.id;
 
   return (
     <div className="relative">
@@ -78,13 +91,15 @@ export function TimelineItem({ slot, isLast = false }: TimelineItemProps) {
           </div>
 
           {/* Image Thumbnail */}
-          {imageSrc && (
+          {imgSrc && (
             <div className="w-full h-32 sm:h-36 rounded-xl bg-surface-container overflow-hidden relative">
               <Image
-                src={imageSrc}
+                src={imgSrc}
                 alt={slot.title}
                 fill
                 unoptimized
+                referrerPolicy="no-referrer"
+                onError={() => setImgSrc(fallbackImage)}
                 className="object-cover hover:scale-105 transition-transform duration-500"
               />
             </div>
@@ -96,29 +111,27 @@ export function TimelineItem({ slot, isLast = false }: TimelineItemProps) {
               <span className="flex items-center gap-1 line-clamp-1 max-w-[65%]">
                 <span className="material-symbols-outlined text-[16px] text-primary">location_on</span>
                 <span>
-                  {slot.destinationData?.address.split(',')[0] || slot.culinaryData?.address.split(',')[0]}
+                  {slot.destinationData?.address?.split(',')[0] || slot.culinaryData?.address?.split(',')[0]}
                 </span>
               </span>
 
-              {slot.destinationData && (
+              {isCulinarySlot && targetId ? (
                 <Link
-                  href={`/explore/destination/${slot.destinationData.id}`}
+                  href={`/explore/food/${targetId}`}
                   className="text-primary font-bold flex items-center gap-0.5 hover:underline shrink-0"
                 >
-                  <span>Detail</span>
+                  <span>Lihat Menu</span>
                   <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                 </Link>
-              )}
-
-              {slot.culinaryData && (
+              ) : targetId ? (
                 <Link
-                  href={`/explore/food/${slot.culinaryData.id}`}
+                  href={`/explore/destination/${targetId}`}
                   className="text-primary font-bold flex items-center gap-0.5 hover:underline shrink-0"
                 >
-                  <span>Menu</span>
+                  <span>Detail Wisata</span>
                   <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                 </Link>
-              )}
+              ) : null}
             </div>
           )}
         </div>

@@ -105,6 +105,11 @@ export function parseChatResponse(raw: string): AIChatResponse {
   // Validasi & normalisasi preferences
   const rawPrefs = (data.preferences ?? {}) as Record<string, unknown>;
 
+  const rawInterests = Array.isArray(rawPrefs.interests) ? rawPrefs.interests : [];
+  const interests = rawInterests.filter((i): i is DestinationCategory =>
+    VALID_INTERESTS.has(i as DestinationCategory)
+  );
+
   const budget =
     typeof rawPrefs.budget === 'number' && rawPrefs.budget > 0
       ? Math.round(rawPrefs.budget)
@@ -112,25 +117,20 @@ export function parseChatResponse(raw: string): AIChatResponse {
 
   const duration = VALID_DURATIONS.has(rawPrefs.duration as TripDuration)
     ? (rawPrefs.duration as TripDuration)
-    : null;
-
-  const rawInterests = Array.isArray(rawPrefs.interests) ? rawPrefs.interests : [];
-  const interests = rawInterests.filter((i): i is DestinationCategory =>
-    VALID_INTERESTS.has(i as DestinationCategory)
-  );
+    : '1_day';
 
   const transport = VALID_TRANSPORTS.has(rawPrefs.transport as TransportType)
     ? (rawPrefs.transport as TransportType)
-    : null;
+    : 'motor';
 
   const travelStyle = VALID_TRAVEL_STYLES.has(rawPrefs.travelStyle as TravelStyle)
     ? (rawPrefs.travelStyle as TravelStyle)
-    : null;
+    : 'santai';
 
   const startLocation =
     typeof rawPrefs.startLocation === 'string' && rawPrefs.startLocation.length > 0
       ? rawPrefs.startLocation
-      : null;
+      : 'Surabaya';
 
   // Validasi conversationalReply
   const conversationalReply =
@@ -154,6 +154,86 @@ export function parseChatResponse(raw: string): AIChatResponse {
     missingParameters,
     conversationalReply,
     quickChoices,
+  };
+}
+
+/**
+ * Ekstraksi preferensi cepat berbasis rule/regex lokal
+ * Digunakan untuk auto-generate instan dari form Beranda atau offline fallback
+ */
+export function extractPreferencesLocally(text: string): AIExtractedPreferences {
+  const lower = text.toLowerCase();
+
+  // 1. Ekstraksi Budget
+  let budget: number | null = null;
+  const budgetMatch = lower.match(/(?:budget|anggaran|rp\.?|uang)?\s*(\d{1,4})\s*(k|rb|ribu)/i) ||
+                      lower.match(/(?:rp\.?\s*)?(\d{1,3}(?:\.\d{3})+)/i);
+  if (budgetMatch) {
+    if (budgetMatch[2]) {
+      const val = parseInt(budgetMatch[1], 10);
+      budget = val < 1000 ? val * 1000 : val;
+    } else {
+      budget = parseInt(budgetMatch[1].replace(/\./g, ''), 10);
+    }
+  } else if (lower.includes('100k') || lower.includes('100 ribu') || lower.includes('100rb')) {
+    budget = 100000;
+  } else if (lower.includes('150k') || lower.includes('150 ribu') || lower.includes('150rb')) {
+    budget = 150000;
+  } else if (lower.includes('200k') || lower.includes('200 ribu') || lower.includes('200rb')) {
+    budget = 200000;
+  } else if (lower.includes('hemat') || lower.includes('murah')) {
+    budget = 100000;
+  } else {
+    budget = null;
+  }
+
+  // 2. Ekstraksi Minat (Strict Exclusivity Check)
+  const interests: DestinationCategory[] = [];
+  const isKulinerOnly = lower.includes('kuliner') || lower.includes('makan') || lower.includes('krawu') || lower.includes('pudak') || lower.includes('otak-otak');
+  const isAlam = lower.includes('alam') || lower.includes('pantai') || lower.includes('bukit') || lower.includes('telaga') || lower.includes('healing');
+  const isReligi = lower.includes('religi') || lower.includes('ziarah') || lower.includes('wali') || lower.includes('makam') || lower.includes('masjid');
+  const isSejarah = lower.includes('sejarah') || lower.includes('heritage') || lower.includes('kota tua') || lower.includes('bandar') || lower.includes('kemasan');
+  const isKeluarga = lower.includes('keluarga') || lower.includes('anak') || lower.includes('water') || lower.includes('wahana');
+  const isEdukasi = lower.includes('edukasi') || lower.includes('lontar sewu') || lower.includes('mangrove');
+
+  // Jika kata "saja" atau "hanya" disebut spesifik
+  if (lower.includes('kulineran saja') || lower.includes('hanya kuliner') || lower.includes('kuliner saja') || lower.includes('makan saja')) {
+    interests.push('kuliner');
+  } else {
+    if (isKulinerOnly) interests.push('kuliner');
+    if (isAlam) interests.push('alam');
+    if (isReligi) interests.push('religi');
+    if (isSejarah) interests.push('sejarah');
+    if (isKeluarga) interests.push('keluarga');
+    if (isEdukasi) interests.push('edukasi');
+  }
+
+  // 3. Durasi
+  let duration: TripDuration = '1_day';
+  if (lower.includes('setengah hari') || lower.includes('half') || lower.includes('pagi saja') || lower.includes('sore saja')) {
+    duration = 'half_day';
+  } else if (lower.includes('2 hari') || lower.includes('dua hari') || lower.includes('menginap')) {
+    duration = '2_days';
+  }
+
+  // 4. Transportasi
+  let transport: TransportType = 'motor';
+  if (lower.includes('mobil') || lower.includes('rombongan') || lower.includes('keluarga')) {
+    transport = 'mobil';
+  } else if (lower.includes('umum') || lower.includes('bus') || lower.includes('angkot')) {
+    transport = 'umum';
+  }
+
+  // 5. Gaya
+  const travelStyle: TravelStyle = lower.includes('padat') || lower.includes('banyak') ? 'padat' : 'santai';
+
+  return {
+    budget,
+    duration,
+    interests,
+    transport,
+    travelStyle,
+    startLocation: lower.includes('gresik') ? 'Gresik' : 'Surabaya',
   };
 }
 
@@ -203,14 +283,14 @@ export function parseReplanResponse(raw: string): AIReplanResponse {
 }
 
 /**
- * Cek apakah semua parameter utama sudah terisi (preferences complete).
- * Digunakan untuk memutuskan apakah bisa lanjut ke halaman rekomendasi.
+ * Cek apakah preferensi cukup untuk menyusun rekomendasi.
+ * Selama budget dan minat terisi, sistem siap menyajikan rekomendasi.
  */
 export function isPreferencesComplete(prefs: AIExtractedPreferences): boolean {
   return (
-    prefs.budget !== null &&
-    prefs.duration !== null &&
-    prefs.interests.length > 0 &&
-    prefs.transport !== null
+    typeof prefs.budget === 'number' &&
+    prefs.budget > 0 &&
+    Array.isArray(prefs.interests) &&
+    prefs.interests.length > 0
   );
 }
